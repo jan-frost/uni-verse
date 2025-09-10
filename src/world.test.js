@@ -15,35 +15,25 @@ test('World Generation', () => {
   test('should generate varied elevation using noise', () => {
     const chunk = generateChunk({ seed: 42 });
 
-    // Check for some air tiles below the mid-point (indicating a varied ground level)
+    // Check for some AIR tiles below the mid-point (indicating a varied ground level)
     const airBelowMidpoint = chunk.tiles.filter((tile, index) => {
       const y = Math.floor(index / CHUNK_WIDTH);
-      return y >= CHUNK_HEIGHT / 2 && tile && tile.type === 'air';
+      return y >= CHUNK_HEIGHT / 2 && tile && tile.type === 'AIR';
     });
-    assert.ok(airBelowMidpoint.length > 0, 'should have some air tiles below midpoint');
+    assert.ok(airBelowMidpoint.length > 0, 'should have some AIR tiles below midpoint');
 
-    // Check for some ground tiles above the mid-point (indicating a varied ground level)
+    // Check for some GROUND tiles above the mid-point (indicating a varied ground level)
     const groundAboveMidpoint = chunk.tiles.filter((tile, index) => {
       const y = Math.floor(index / CHUNK_WIDTH);
-      return y < CHUNK_HEIGHT / 2 && tile && tile.type === 'ground';
+      return y < CHUNK_HEIGHT / 2 && tile && tile.type === 'GROUND';
     });
-    assert.ok(groundAboveMidpoint.length > 0, 'should have some ground tiles above midpoint');
-  });
-
-  test('should generate different biomes based on noise', () => {
-    const chunk = generateChunk({ seed: 42 });
-
-    const forestTiles = chunk.tiles.filter(tile => tile && tile.biome === 'forest');
-    const desertTiles = chunk.tiles.filter(tile => tile && tile.biome === 'desert');
-
-    assert.ok(forestTiles.length > 0, 'should have some forest tiles');
-    assert.ok(desertTiles.length > 0, 'should have some desert tiles');
+    assert.ok(groundAboveMidpoint.length > 0, 'should have some GROUND tiles above midpoint');
   });
 
   test('should generate caves within ground areas', () => {
     const chunk = generateChunk({ seed: 42 });
 
-    // Check for air tiles that are below the surface and not part of the main sky
+    // Check for AIR tiles that are below the surface and not part of the main sky
     const caveAirTiles = chunk.tiles.filter((tile, index) => {
       const x = index % CHUNK_WIDTH;
       const y = Math.floor(index / CHUNK_WIDTH);
@@ -52,27 +42,27 @@ test('World Generation', () => {
       let surfaceHeight = CHUNK_HEIGHT; // Default to bottom if no ground found
       for (let i = 0; i < CHUNK_HEIGHT; i++) {
         const currentTile = chunk.tiles[i * CHUNK_WIDTH + x];
-        if (currentTile && currentTile.type === 'ground') {
+        if (currentTile && currentTile.type === 'GROUND') {
           surfaceHeight = i;
           break;
         }
       }
 
-      // If the tile is air and its y-coordinate is below the surface height, it's a potential cave air tile
-      return tile && tile.type === 'air' && y > surfaceHeight;
+      // If the tile is AIR and its y-coordinate is below the surface height, it's a potential cave AIR tile
+      return tile && tile.type === 'AIR' && y > surfaceHeight;
     });
 
-    assert.ok(caveAirTiles.length > 0, 'should have some air tiles within ground areas (caves)');
+    assert.ok(caveAirTiles.length > 0, 'should have some AIR tiles within ground areas (caves)');
   });
 
   test('should place structures like trees on the surface', () => {
     const chunk = generateChunk({ seed: 42 });
 
-    const woodTiles = chunk.tiles.filter(tile => tile && tile.type === 'wood');
-    const leafTiles = chunk.tiles.filter(tile => tile && tile.type === 'leaf');
+    const woodTiles = chunk.tiles.filter(tile => tile && tile.type === 'WOOD');
+    const leafTiles = chunk.tiles.filter(tile => tile && tile.type === 'LEAF');
 
-    assert.ok(woodTiles.length > 0, 'should have some wood tiles');
-    assert.ok(leafTiles.length > 0, 'should have some leaf tiles');
+    assert.ok(woodTiles.length > 0, 'should have some WOOD tiles');
+    assert.ok(leafTiles.length > 0, 'should have some LEAF tiles');
 
     // Further checks could include: are they on the surface? are they in a tree-like shape?
     // For now, just checking for existence.

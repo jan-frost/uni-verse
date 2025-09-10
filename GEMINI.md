@@ -31,7 +31,7 @@ The project is planned in two main phases:
 Project dependencies are managed via `npm`. The primary dependency identified is `rot-js`.
 
 ### Testing
-Tests are run using Vitest, configured to use Node.js's native test runner.
+Tests are run using Node.js's native test runner. Vitest is not used due to compatibility issues on Android.
 To run the tests, execute the following command in the project root:
 ```bash
 npm test
