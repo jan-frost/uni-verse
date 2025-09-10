@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "start": "http-server -c-1"
   },
   "keywords": [],
   "author": "",
@@ -12,5 +13,8 @@
   "type": "module",
   "dependencies": {
     "rot-js": "^2.2.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }

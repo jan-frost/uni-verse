@@ -1,7 +1,8 @@
 import { generateChunk } from './src/world.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
+import { TILES } from './src/tiles.js';
 console.log("main.js loaded");
-import * as ROT from './node_modules/rot-js/lib/index.js';
+import * as ROT from 'rot-js';
 
 const canvas = document.getElementById('gameCanvas');
 
@@ -30,31 +31,12 @@ for (let y = 0; y < CHUNK_HEIGHT; y++) {
         const tile = chunk.tiles[index];
 
         if (tile) {
-            let char = '?';
-            let color = 'white';
-
-            switch (tile.type) {
-                case 'ground':
-                    char = '#';
-                    color = '#8B4513'; // SaddleBrown
-                    break;
-                case 'air':
-                    char = '.';
-                    color = '#ADD8E6'; // LightBlue
-                    break;
-                case 'wood':
-                    char = 'T';
-                    color = '#A0522D'; // Sienna
-                    break;
-                case 'leaf':
-                    char = 'L';
-                    color = '#228B22'; // ForestGreen
-                    break;
-                default:
-                    char = '?';
-                    color = 'white';
+            const tileInfo = TILES[tile.type];
+            if (tileInfo) {
+                display.draw(x, y, tileInfo.symbol, tileInfo.fg, tileInfo.bg);
+            } else {
+                display.draw(x, y, '?', 'white', 'black');
             }
-            display.draw(x, y, char, color, tile.biome === 'desert' ? '#F4A460' : 'black'); // Background color for desert biome
         }
     }
 }
