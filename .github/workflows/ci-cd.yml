@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-and-test
 
+    permissions:
+      pages: write
+      id-token: write
+
     steps:
     - name: Deploy to GitHub Pages
       id: deployment
