@@ -1,9 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { calculateViewport, adjustDisplayForZoom, getInitialViewportSettings } from './viewport.js';
-import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
+import { adjustDisplayForZoom, getInitialViewportSettings } from './viewport.js';
 
-// Mock ROT.Display for testing adjustDisplayForZoom and calculateViewport
+// Mock ROT.Display for testing adjustDisplayForZoom
 class MockDisplay {
   constructor(options = {}) {
     this.options = { width: options.width || 20, height: options.height || 20, fontSize: options.fontSize || 12, spacing: options.spacing || 1 };
@@ -17,31 +16,6 @@ class MockDisplay {
 }
 
 test('Viewport Management', async (t) => {
-  await t.test('calculateViewport should center around player and clamp to world boundaries', () => {
-    const mockDisplay = new MockDisplay({ width: 20, height: 20 }); // Fixed viewport for this test
-
-    // Player in the middle of the chunk
-    let playerX = Math.floor(CHUNK_WIDTH / 2);
-    let playerY = Math.floor(CHUNK_HEIGHT / 2);
-    let { startX, startY } = calculateViewport(playerX, playerY, mockDisplay);
-    assert.strictEqual(startX, playerX - Math.floor(mockDisplay.getOptions().width / 2), 'startX should be centered');
-    assert.strictEqual(startY, playerY - Math.floor(mockDisplay.getOptions().height / 2), 'startY should be centered');
-
-    // Player near top-left corner
-    playerX = 5;
-    playerY = 5;
-    ({ startX, startY } = calculateViewport(playerX, playerY, mockDisplay));
-    assert.strictEqual(startX, 0, 'startX should be clamped to 0');
-    assert.strictEqual(startY, 0, 'startY should be clamped to 0');
-
-    // Player near bottom-right corner
-    playerX = CHUNK_WIDTH - 5;
-    playerY = CHUNK_HEIGHT - 5;
-    ({ startX, startY } = calculateViewport(playerX, playerY, mockDisplay));
-    assert.strictEqual(startX, CHUNK_WIDTH - mockDisplay.getOptions().width, 'startX should be clamped to max');
-    assert.strictEqual(startY, CHUNK_HEIGHT - mockDisplay.getOptions().height, 'startY should be clamped to max');
-  });
-
   await t.test('adjustDisplayForZoom should modify fontSize and viewport dimensions', () => {
     const mockDisplay = new MockDisplay();
 

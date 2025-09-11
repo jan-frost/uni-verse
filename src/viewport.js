@@ -1,21 +1,3 @@
-import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
-
-export const calculateViewport = (playerX, playerY, display) => {
-  const viewportWidth = display.getOptions().width;
-  const viewportHeight = display.getOptions().height;
-
-  let startX = playerX - Math.floor(viewportWidth / 2);
-  let startY = playerY - Math.floor(viewportHeight / 2);
-
-  // Clamp viewport to world boundaries
-  startX = Math.max(0, startX);
-  startY = Math.max(0, startY);
-  startX = Math.min(CHUNK_WIDTH - viewportWidth, startX);
-  startY = Math.min(CHUNK_HEIGHT - viewportHeight, startY);
-
-  return { startX, startY };
-};
-
 export const adjustDisplayForZoom = (display, zoomLevel) => {
   const baseFontSize = 12;
   const baseSpacing = 1;
@@ -31,7 +13,7 @@ export const adjustDisplayForZoom = (display, zoomLevel) => {
   const calculatedViewportWidth = baseVisibleTilesX - (zoomLevel * 2);
   const calculatedViewportHeight = baseVisibleTilesY - (zoomLevel * 2);
 
-  const clampedViewportWidth = Math.max(10, Math.min(CHUNK_WIDTH, calculatedViewportWidth));
+  const clampedViewportWidth = Math.max(10, calculatedViewportWidth);
   const clampedViewportHeight = clampedViewportWidth; // Ensure height is always equal to width for square display
 
 
