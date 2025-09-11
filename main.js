@@ -41,11 +41,15 @@ const drawGame = (worldManager, display) => {
     const currentViewportWidth = display.getOptions().width;
     const currentViewportHeight = display.getOptions().height;
 
+    console.log(`Viewport: (${viewportWorldX}, ${viewportWorldY}) - Size: ${currentViewportWidth}x${currentViewportHeight}`);
+
     // Calculate the range of chunk coordinates visible in the current viewport
     const startChunkX = Math.floor(viewportWorldX / CHUNK_WIDTH);
     const endChunkX = Math.floor((viewportWorldX + currentViewportWidth - 1) / CHUNK_WIDTH);
     const startChunkY = Math.floor(viewportWorldY / CHUNK_HEIGHT);
     const endChunkY = Math.floor((viewportWorldY + currentViewportHeight - 1) / CHUNK_HEIGHT);
+
+    console.log(`Visible Chunks: X[${startChunkX}, ${endChunkX}], Y[${startChunkY}, ${endChunkY}]`);
 
     for (let y = 0; y < currentViewportHeight; y++) {
         for (let x = 0; x < currentViewportWidth; x++) {
@@ -66,6 +70,10 @@ const drawGame = (worldManager, display) => {
             // For now, we'll calculate visibility per chunk. This might need optimization later.
             const visibility = calculateVisibility({ tiles: chunk.tiles });
             const isVisible = visibility[tileIndex];
+
+            if (x === 0 && y === 0) { // Log for top-left tile of viewport
+                console.log(`  Tile (${worldX}, ${worldY}) -> Chunk (${chunkX}, ${chunkY}) Local (${localX}, ${localY}) - Type: ${tile ? tile.type : 'N/A'}, Visible: ${isVisible}`);
+            }
 
             if (isVisible) { // Check visibility
                 if (tile) {
@@ -99,6 +107,26 @@ document.getElementById('zoomOutBtn').addEventListener('click', () => {
     drawGame(worldManager, display);
 });
 
+    drawGame(worldManager, display);
+});
+
+// Add keyboard event listener for viewport movement
+document.addEventListener('keydown', (event) => {
+    const step = 1; // Movement step in tiles
+    switch (event.key) {
+        case 'ArrowUp':
+            viewportWorldY -= step;
+            break;
+        case 'ArrowDown':
+            viewportWorldY += step;
+            break;
+        case 'ArrowLeft':
+            viewportWorldX -= step;
+            break;
+        case 'ArrowRight':
+            viewportWorldX += step;
+            break;
+    }
     drawGame(worldManager, display);
 });
 
