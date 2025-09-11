@@ -54,3 +54,6 @@ The project adheres to a "Testing Without Mocks" philosophy (also known as "Null
 *   **Functional Approach:** Core game logic is implemented as pure functions operating on immutable data structures.
 *   **Data-Driven Design:** Game elements (tiles, biomes) are defined as data objects rather than being hardcoded.
 *   **Side Effect Isolation:** Side effects (rendering, networking) are isolated at the application's boundaries.
+
+### Agent Workflow
+*   **Commit Changes:** After successfully completing a task and verifying the changes, always commit the changes to the version control system.
