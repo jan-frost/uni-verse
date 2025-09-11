@@ -1,6 +1,6 @@
-# Asciicraft - Design Document
+# uni-verse - Design Document
 
-This document outlines the design and architecture for Asciicraft, a 2D side-scrolling sandbox game inspired by Minecraft and Dwarf Fortress, rendered with Unicode characters.
+This document outlines the design and architecture for uni-verse, a 2D side-scrolling sandbox game inspired by Minecraft and Dwarf Fortress, rendered with Unicode characters.
 
 ### 1. Core Concept
 
