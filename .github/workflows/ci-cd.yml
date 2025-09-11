@@ -34,6 +34,7 @@ jobs:
       with:
         name: github-pages
         path: dist
+        overwrite: true
 
   deploy:
     needs: build-and-test
