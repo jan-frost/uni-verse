@@ -32,6 +32,12 @@
             }
         }
     </script>
-    <script type="module" src="main.js?v=" + Date.now() + "></script>
+    <script type="module">
+        // Dynamically set the src for main.js to bypass caching
+        const mainScript = document.createElement('script');
+        mainScript.type = 'module';
+        mainScript.src = 'main.js?v=' + Date.now();
+        document.body.appendChild(mainScript);
+    </script>
 </body>
 </html>
