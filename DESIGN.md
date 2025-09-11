@@ -64,3 +64,11 @@ The project will be built in two main phases to manage complexity.
 - **Phase 2: Multiplayer Refactor.**
     - **Goal:** Introduce multiplayer functionality.
     - **Implementation:** Create the Node.js server, move all authoritative logic to it, and implement WebSocket communication. The client will be refactored into a thin rendering terminal.
+
+### 8. Deployment Strategy
+
+- **Client (Single-Player):** The client-side application will be hosted on **GitHub Pages**. This provides free, static site hosting directly from the GitHub repository, suitable for the browser-based game.
+- **Server (Multiplayer - Future):** The Node.js server, once developed, is planned to be hosted on **Fly.io**. Fly.io offers a platform for deploying applications globally, with a free tier suitable for initial development and testing.
+- **CI/CD:** **GitHub Actions** will be used for Continuous Integration and Continuous Deployment.
+    - **Build & Test Status:** Workflows will run on pushes to the `main` branch to ensure code quality, run tests, and provide build status.
+    - **Deployment:** New versions of the client application will be automatically deployed to GitHub Pages upon the creation of a new version tag (e.g., `v1.0.0`).
