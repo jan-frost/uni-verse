@@ -99,22 +99,26 @@ document.getElementById('zoomOutBtn').addEventListener('click', () => {
     drawGame(worldManager, display);
 });
 
-// Add keyboard event listener for viewport movement
-document.addEventListener('keydown', (event) => {
-    const step = 1; // Movement step in tiles
-    switch (event.key) {
-        case 'ArrowUp':
-            viewportWorldY -= step;
-            break;
-        case 'ArrowDown':
-            viewportWorldY += step;
-            break;
-        case 'ArrowLeft':
-            viewportWorldX -= step;
-            break;
-        case 'ArrowRight':
-            viewportWorldX += step;
-            break;
-    }
+    drawGame(worldManager, display);
+});
+
+// Add mobile button event listeners for viewport movement
+document.getElementById('moveUpBtn').addEventListener('click', () => {
+    viewportWorldY -= 1;
+    drawGame(worldManager, display);
+});
+
+document.getElementById('moveDownBtn').addEventListener('click', () => {
+    viewportWorldY += 1;
+    drawGame(worldManager, display);
+});
+
+document.getElementById('moveLeftBtn').addEventListener('click', () => {
+    viewportWorldX -= 1;
+    drawGame(worldManager, display);
+});
+
+document.getElementById('moveRightBtn').addEventListener('click', () => {
+    viewportWorldX += 1;
     drawGame(worldManager, display);
 });
