@@ -54,3 +54,17 @@ The project adheres to a "Testing Without Mocks" philosophy (also known as "Null
 *   **Functional Approach:** Core game logic is implemented as pure functions operating on immutable data structures.
 *   **Data-Driven Design:** Game elements (tiles, biomes) are defined as data objects rather than being hardcoded.
 *   **Side Effect Isolation:** Side effects (rendering, networking) are isolated at the application's boundaries.
+
+## Workflow Description
+
+This section outlines the typical workflow for contributing to the uni-verse project.
+
+1.  **Understand the Task:** Clearly understand the feature, bug fix, or refactoring task. Refer to issue trackers, design documents, or discussions for context.
+2.  **Branching:** Create a new branch from `main` for your changes. Use a descriptive branch name (e.g., `feature/new-biome`, `bugfix/rendering-glitch`).
+3.  **Implement and Test:**
+    *   Write tests first (TDD approach) for new features or bug fixes.
+    *   Implement the changes, adhering to the project's coding conventions and architectural principles (functional core, data-driven, side effect isolation).
+    *   Ensure all existing tests pass and new tests cover the implemented functionality.
+4.  **Code Review:** Submit a pull request (PR) to the `main` branch. Describe your changes, their impact, and any relevant testing performed.
+5.  **Address Feedback:** Respond to code review comments and make necessary adjustments.
+6.  **Merge:** Once approved, your changes will be merged into `main`.
