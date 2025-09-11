@@ -130,23 +130,4 @@ document.addEventListener('keydown', (event) => {
     drawGame(worldManager, display);
 });
 
-// Add mobile button event listeners for viewport movement
-document.getElementById('moveUpBtn').addEventListener('click', () => {
-    viewportWorldY -= 1;
-    drawGame(worldManager, display);
-});
 
-document.getElementById('moveDownBtn').addEventListener('click', () => {
-    viewportWorldY += 1;
-    drawGame(worldManager, display);
-});
-
-document.getElementById('moveLeftBtn').addEventListener('click', () => {
-    viewportWorldX -= 1;
-    drawGame(worldManager, display);
-});
-
-document.getElementById('moveRightBtn').addEventListener('click', () => {
-    viewportWorldX += 1;
-    drawGame(worldManager, display);
-});
