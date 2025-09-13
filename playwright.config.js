@@ -17,9 +17,9 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'http-server -p 3000 -c-1 dist',
+  webServer: process.env.PLAYWRIGHT_START_SERVER ? {
+    command: 'npm start', // Use npm start script
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-  },
+    reuseExistingServer: false, // Always start a new server if PLAYWRIGHT_START_SERVER is set
+  } : undefined,
 });
