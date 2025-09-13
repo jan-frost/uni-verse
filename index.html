@@ -5,24 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>uni-verse</title>
     <style>
-        body {
+        html, body {
+            height: 100%;
             margin: 0;
             overflow: hidden;
             background-color: black;
         }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
         canvas {
             display: block;
-            margin: 0 auto;
+            max-width: 100vw;
+            max-height: 100vh;
             background-color: black;
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div style="position: absolute; top: 10px; left: 10px; z-index: 100;">
-        <button id="zoomInBtn">+</button>
-        <button id="zoomOutBtn">-</button>
-    </div>
+    
     <script type="importmap">
         {
             "imports": {

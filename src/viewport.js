@@ -16,37 +16,31 @@ export const calculateViewport = (playerX, playerY, display) => {
   return { startX, startY };
 };
 
-export const adjustDisplayForZoom = (display, zoomLevel) => {
-  const baseFontSize = 12;
+export const adjustDisplayForZoom = (display) => {
+  const fixedWidth = 17;
+  const fixedHeight = 17;
   const baseSpacing = 1;
 
-  // Calculate font size based on zoom level
-  const fontSize = baseFontSize + (zoomLevel * 2);
-  const clampedFontSize = Math.max(8, Math.min(20, fontSize));
+  // Calculate the maximum possible font size to fit 17x17 tiles within the window
+  const availableWidth = window.innerWidth;
+  const availableHeight = window.innerHeight;
 
-  // Calculate viewport dimensions based on zoom level
-  const baseVisibleTilesX = 20;
-  const baseVisibleTilesY = 20;
+  // Determine the smaller dimension to maintain a square aspect ratio for the overall canvas
+  const smallerDimension = Math.min(availableWidth, availableHeight);
 
-  const calculatedViewportWidth = baseVisibleTilesX - (zoomLevel * 2);
-  const calculatedViewportHeight = baseVisibleTilesY - (zoomLevel * 2);
+  // Calculate font size such that 17 tiles fit within the smaller dimension
+  // Each tile will have a width and height equal to the fontSize
+  const calculatedFontSize = Math.floor(smallerDimension / fixedWidth);
 
-  const clampedViewportWidth = Math.max(10, Math.min(CHUNK_WIDTH, calculatedViewportWidth));
-  const clampedViewportHeight = clampedViewportWidth; // Ensure height is always equal to width for square display
-
+  // Ensure a minimum font size for readability
+  const finalFontSize = Math.max(8, calculatedFontSize);
 
   display.setOptions({
-    width: clampedViewportWidth,
-    height: clampedViewportHeight,
-    fontSize: clampedFontSize,
+    width: fixedWidth,
+    height: fixedHeight,
+    fontSize: finalFontSize,
     spacing: baseSpacing,
   });
 
-  return { viewportWidth: clampedViewportWidth, viewportHeight: clampedViewportHeight };
-};
-
-export const getInitialViewportSettings = () => {
-  return {
-    initialZoomLevel: 0, // Corresponds to baseFontSize and baseVisibleTiles
-  };
+  return { viewportWidth: fixedWidth, viewportHeight: fixedHeight };
 };

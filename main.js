@@ -2,15 +2,12 @@ import { generateChunk } from './src/world.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { TILES } from './src/tiles.js';
 import { calculateVisibility } from './src/visibility.js';
-import { calculateViewport, adjustDisplayForZoom, getInitialViewportSettings } from './src/viewport.js';
+import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
 
 console.log("main.js loaded");
 import * as ROT from 'rot-js';
 
 const canvas = document.getElementById('gameCanvas');
-
-const { initialZoomLevel } = getInitialViewportSettings();
-let zoomLevel = initialZoomLevel;
 
 // Player position (for now, fixed at center of chunk)
 let playerX = Math.floor(CHUNK_WIDTH / 2);
@@ -23,7 +20,7 @@ const display = new ROT.Display({
     bg: "black",
     fg: "white"
 });
-adjustDisplayForZoom(display, zoomLevel); // Apply initial zoom, sets width/height
+adjustDisplayForZoom(display); // Apply initial zoom, sets width/height
 
 // Append the display's container to the canvas element
 const rotCanvas = display.getContainer();
@@ -75,15 +72,10 @@ const drawGame = (playerX, playerY, chunk, visibility, display) => {
 // Initial draw
 drawGame(playerX, playerY, chunk, visibility, display);
 
-// Add zoom button event listeners
-document.getElementById('zoomInBtn').addEventListener('click', () => {
-    zoomLevel++;
-    adjustDisplayForZoom(display, zoomLevel); // This now updates display.width/height
+// Handle window resizing
+window.addEventListener('resize', () => {
+    adjustDisplayForZoom(display);
     drawGame(playerX, playerY, chunk, visibility, display);
 });
 
-document.getElementById('zoomOutBtn').addEventListener('click', () => {
-    zoomLevel--;
-    adjustDisplayForZoom(display, zoomLevel); // This now updates display.width/height
-    drawGame(playerX, playerY, chunk, visibility, display);
-});
+
