@@ -5,11 +5,28 @@ export const generateChunk = (options) => {
   const chunkWidth = options.width || CHUNK_WIDTH;
   const chunkHeight = options.height || CHUNK_HEIGHT;
   const tiles = new Array(chunkWidth * chunkHeight).fill(null);
-  const elevationNoise = new ROT.Noise.Simplex(options.seed || Date.now());
-  const caveNoise = new ROT.Noise.Simplex((options.seed || Date.now()) + 2); // Use another different seed for cave noise
+
+  // The finalSeed calculation and ROT.RNG.setSeed should be here
+  // as ROT.RNG.getUniform() is used for tree placement.
+  // This ensures consistency for tests.
+  const chunkSeed = (options.chunkX || 0) + (options.chunkY || 0) * 1000;
+  let finalSeed = chunkSeed === 0 ? 12345 : chunkSeed;
+
+  finalSeed = finalSeed % 65536; // Use modulo to keep it within range
+  if (finalSeed < 0) finalSeed += 65536; // Ensure positive
+
+  ROT.RNG.setSeed(finalSeed); // Set seed for ROT.RNG for tree placement
+
+  const { chunkX, chunkY, worldNoise, worldCaveNoise } = options;
+
+  console.log(`Generating chunk: chunkX=${chunkX}, chunkY=${chunkY}`);
+
   for (let x = 0; x < chunkWidth; x++) {
-    const height = Math.floor(elevationNoise.get(x / 10, 0) * (chunkHeight * 0.2)) + (chunkHeight / 2);
+    const worldX = chunkX * CHUNK_WIDTH + x; // Calculate world X coordinate
+
+    const height = Math.floor(worldNoise.get(worldX / 10, 0) * (chunkHeight * 0.2)) + (chunkHeight / 2);
     for (let y = 0; y < chunkHeight; y++) {
+      const worldY = chunkY * CHUNK_HEIGHT + y; // Calculate world Y coordinate
 
       const index = y * chunkWidth + x;
 
@@ -18,12 +35,9 @@ export const generateChunk = (options) => {
         type = 'GROUND';
       }
 
-      // Apply 3D cave noise
-      // The third dimension (z) can represent depth or another spatial dimension
-      // Scale x, y, and z to get interesting cave patterns
-      const caveValue = caveNoise.get(x / 15, y / 15, y / 10); // Use y as a depth component for 3D noise
+      const caveValue = worldCaveNoise.get(worldX / 15, worldY / 15, worldY / 10); // Use world coordinates for cave noise
 
-      if (type === 'GROUND' && caveValue > 0.3) { // If it's ground and noise value is high enough, make it air (cave)
+      if (type === 'GROUND' && caveValue > 0.3) {
         type = 'AIR';
       }
 
@@ -32,7 +46,7 @@ export const generateChunk = (options) => {
   }
 
   // Post-processing for structures (trees)
-  ROT.RNG.setSeed(options.seed || Date.now());
+  console.log(`ROT.RNG.getUniform() before tree placement for chunk ${chunkX},${chunkY}: ${ROT.RNG.getUniform()}`);
 
   for (let x = 0; x < chunkWidth; x++) {
     for (let y = 0; y < chunkHeight; y++) {
@@ -67,8 +81,38 @@ export const generateChunk = (options) => {
       }
     }
   }
+  console.log(`ROT.RNG.getUniform() after tree placement for chunk ${chunkX},${chunkY}: ${ROT.RNG.getUniform()}`);
 
   return {
     tiles,
   };
+};
+
+export const getAdjacentChunkCoordinates = (currentChunkX, currentChunkY) => {
+  return [
+    { chunkX: currentChunkX - 1, chunkY: currentChunkY }, // Left chunk
+    { chunkX: currentChunkX + 1, chunkY: currentChunkY }, // Right chunk
+  ];
+};
+
+export const manageChunkMemory = (currentChunkX, currentChunkY, loadedChunks, getChunk) => {
+  const chunksToKeep = new Set();
+  // Current chunk
+  chunksToKeep.add(`${currentChunkX},${currentChunkY}`);
+  // Left adjacent chunk
+  chunksToKeep.add(`${currentChunkX - 1},${currentChunkY}`);
+  // Right adjacent chunk
+  chunksToKeep.add(`${currentChunkX + 1},${currentChunkY}`);
+
+  // Remove chunks not in the "keep" set
+  for (const chunkKey of loadedChunks.keys()) {
+    if (!chunksToKeep.has(chunkKey)) {
+      loadedChunks.delete(chunkKey);
+    }
+  }
+
+  // Ensure current and adjacent chunks are loaded (getChunk handles generation)
+  getChunk(currentChunkX, currentChunkY);
+  getChunk(currentChunkX - 1, currentChunkY);
+  getChunk(currentChunkX + 1, currentChunkY);
 };

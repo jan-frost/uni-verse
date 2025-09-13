@@ -7,11 +7,7 @@ export const calculateViewport = (playerX, playerY, display) => {
   let startX = playerX - Math.floor(viewportWidth / 2);
   let startY = playerY - Math.floor(viewportHeight / 2);
 
-  // Clamp viewport to world boundaries
-  startX = Math.max(0, startX);
-  startY = Math.max(0, startY);
-  startX = Math.min(CHUNK_WIDTH - viewportWidth, startX);
-  startY = Math.min(CHUNK_HEIGHT - viewportHeight, startY);
+  // No clamping for startY here, as playerY is already clamped
 
   return { startX, startY };
 };
