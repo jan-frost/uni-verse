@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --test",
+    "test": "node --test src/*.test.js",
+    "test:e2e": "playwright test",
     "start": "http-server -c-1",
-    "build": "rm -rf dist && mkdir dist && esbuild main.js --bundle --outfile=dist/bundle.js --minify --sourcemap && node scripts/build-html.js"
+    "build": "node scripts/build.js"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,7 @@
     "rot-js": "^2.2.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "esbuild": "^0.25.9",
     "http-server": "^14.1.1"
   }

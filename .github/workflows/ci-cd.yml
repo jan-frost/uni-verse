@@ -29,6 +29,12 @@ jobs:
     - name: Run tests
       run: npm test
 
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Run E2E tests
+      run: npm run test:e2e
+
     - name: Upload static files as artifact
       uses: actions/upload-pages-artifact@v3
       with:
