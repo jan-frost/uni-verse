@@ -1,4 +1,4 @@
-import { generateChunk } from './src/world.js';
+import { generateChunk, manageChunkMemory } from './src/world.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { TILES } from './src/tiles.js';
 import { calculateVisibility } from './src/visibility.js';
@@ -9,19 +9,47 @@ import * as ROT from 'rot-js';
 
 const canvas = document.getElementById('gameCanvas');
 
+// Parse URL query parameters
+const urlParams = new URLSearchParams(window.location.search);
+
 // Global World Seed
-const WORLD_SEED = 12345; // A fixed seed for the entire world
+let WORLD_SEED = urlParams.has('seed') ? parseInt(urlParams.get('seed')) : Date.now(); // Default to a random seed if no seed parameter is provided
+
+// Ensure WORLD_SEED is within a safe integer range for ROT.Noise.Simplex and never 0
+WORLD_SEED = (WORLD_SEED % 65536) + 1; // Use modulo to keep it within range and ensure it's at least 1
+
+console.log(`Initial WORLD_SEED (before clamp): ${WORLD_SEED}`);
+
+// Set ROT.RNG seed globally
+ROT.RNG.setSeed(WORLD_SEED);
 
 // Global Noise Instances
 const worldNoise = new ROT.Noise.Simplex(WORLD_SEED);
 const worldCaveNoise = new ROT.Noise.Simplex(WORLD_SEED + 2); // Offset for cave noise
 
+console.log(`Final WORLD_SEED (after clamp and before noise instantiation): ${WORLD_SEED}`);
+
 // Current chunk coordinates
-let currentChunkX = 0;
-let currentChunkY = 0; // For horizontal scrolling, this will likely remain 0
+let currentChunkX = parseInt(urlParams.get('chunkX')) || 0; // Default to 0
+let currentChunkY = 0; // Fixed to 0 for horizontal scrolling
+
+// Initialize ROT.Display
+const display = new ROT.Display({
+    forceSquareRatio: true,
+    fontFamily: "monospace",
+    bg: "black",
+    fg: "white"
+});
+adjustDisplayForZoom(display); // Apply initial zoom, sets width/height
+
+// Append the display's container to the canvas element
+const rotCanvas = display.getContainer();
+rotCanvas.style.border = '2px solid white';
+rotCanvas.style.boxSizing = 'border-box'; // Include padding and border in the element's total width and height.
+canvas.parentNode.replaceChild(rotCanvas, canvas);
 
 // Player position (for now, fixed at center of chunk)
-let playerX = currentChunkX * CHUNK_WIDTH + Math.floor(CHUNK_WIDTH / 2);
+let playerX = (currentChunkX * CHUNK_WIDTH) + Math.floor(display.getOptions().width / 2);
 let playerY = Math.floor(CHUNK_HEIGHT / 2);
 
 // Cache for loaded chunks
@@ -44,21 +72,6 @@ const getChunk = (chunkX, chunkY) => {
     return newChunk;
 };
 
-// Initialize ROT.Display
-const display = new ROT.Display({
-    forceSquareRatio: true,
-    fontFamily: "monospace",
-    bg: "black",
-    fg: "white"
-});
-adjustDisplayForZoom(display); // Apply initial zoom, sets width/height
-
-// Append the display's container to the canvas element
-const rotCanvas = display.getContainer();
-rotCanvas.style.border = '2px solid white';
-rotCanvas.style.boxSizing = 'border-box'; // Include padding and border in the element's total width and height.
-canvas.parentNode.replaceChild(rotCanvas, canvas);
-
 // Generate the initial chunk
 const initialChunk = getChunk(currentChunkX, currentChunkY);
 // const visibility = calculateVisibility({ tiles: initialChunk.tiles }); // Calculate visibility - now calculated per chunk
@@ -70,6 +83,27 @@ const drawGame = (playerX, playerY, currentChunkX, currentChunkY, display) => {
     const { startX, startY } = calculateViewport(playerX, playerY, display);
     const currentViewportWidth = display.getOptions().width;
     const currentViewportHeight = display.getOptions().height;
+
+    // Calculate center of viewport in world coordinates
+    const centerViewportWorldX = startX + Math.floor(currentViewportWidth / 2);
+    const centerViewportWorldY = startY + Math.floor(currentViewportHeight / 2);
+
+    // Determine chunk coordinates of center tile
+    const centerChunkX = Math.floor(centerViewportWorldX / CHUNK_WIDTH);
+    const centerChunkY = Math.floor(centerViewportWorldY / CHUNK_HEIGHT);
+
+    // Get the chunk containing the center tile
+    const centerChunk = getChunk(centerChunkX, centerChunkY);
+
+    // Calculate local coordinates within the center chunk
+    const centerLocalX = centerViewportWorldX % CHUNK_WIDTH;
+    const centerLocalY = (centerViewportWorldY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
+
+    // Get the tile at the center of the viewport
+    const centerTileIndex = centerLocalY * CHUNK_WIDTH + centerLocalX;
+    const centerTile = centerChunk.tiles[centerTileIndex];
+
+    console.log(`Center viewport tile: WorldX=${centerViewportWorldX}, WorldY=${centerViewportWorldY}, Type=${centerTile ? centerTile.type : 'N/A'}`);
 
     // Determine the range of chunks to draw
     // The player's worldX position is playerX

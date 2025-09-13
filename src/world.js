@@ -6,17 +6,6 @@ export const generateChunk = (options) => {
   const chunkHeight = options.height || CHUNK_HEIGHT;
   const tiles = new Array(chunkWidth * chunkHeight).fill(null);
 
-  // The finalSeed calculation and ROT.RNG.setSeed should be here
-  // as ROT.RNG.getUniform() is used for tree placement.
-  // This ensures consistency for tests.
-  const chunkSeed = (options.chunkX || 0) + (options.chunkY || 0) * 1000;
-  let finalSeed = chunkSeed === 0 ? 12345 : chunkSeed;
-
-  finalSeed = finalSeed % 65536; // Use modulo to keep it within range
-  if (finalSeed < 0) finalSeed += 65536; // Ensure positive
-
-  ROT.RNG.setSeed(finalSeed); // Set seed for ROT.RNG for tree placement
-
   const { chunkX, chunkY, worldNoise, worldCaveNoise } = options;
 
   console.log(`Generating chunk: chunkX=${chunkX}, chunkY=${chunkY}`);
@@ -46,10 +35,12 @@ export const generateChunk = (options) => {
   }
 
   // Post-processing for structures (trees)
-  console.log(`ROT.RNG.getUniform() before tree placement for chunk ${chunkX},${chunkY}: ${ROT.RNG.getUniform()}`);
 
   for (let x = 0; x < chunkWidth; x++) {
+    const worldX = chunkX * CHUNK_WIDTH + x; // Calculate world X coordinate for tree placement
     for (let y = 0; y < chunkHeight; y++) {
+      const worldY = chunkY * CHUNK_HEIGHT + y; // Calculate world Y coordinate for tree placement
+
       const index = y * chunkWidth + x;
       const tile = tiles[index];
 
@@ -59,8 +50,9 @@ export const generateChunk = (options) => {
         const tileAbove = tiles[aboveIndex];
 
         if (tileAbove && tileAbove.type === 'AIR') {
-          // Randomly decide to place a tree
-          if (ROT.RNG.getUniform() < 0.05) { // 5% chance to place a tree
+          // Deterministically decide to place a tree using noise
+          const treeNoiseValue = worldNoise.get(worldX / 5, worldY / 5); // Sample noise at a different frequency
+          if (treeNoiseValue < -0.4) { // Place tree if noise value is below a threshold
             // Place trunk (wood)
             tiles[aboveIndex] = { type: 'WOOD' };
             if (y - 2 >= 0) tiles[(y - 2) * chunkWidth + x] = { type: 'WOOD' };
@@ -81,8 +73,6 @@ export const generateChunk = (options) => {
       }
     }
   }
-  console.log(`ROT.RNG.getUniform() after tree placement for chunk ${chunkX},${chunkY}: ${ROT.RNG.getUniform()}`);
-
   return {
     tiles,
   };
