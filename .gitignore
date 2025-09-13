@@ -1,3 +1,8 @@
 node_modules
 /dist
 /e2e/map_screenshot.png
+e2e/chunk_memory.spec.js
+e2e/chunk_memory_after_left_move.png
+e2e/chunk_memory_after_right_move.png
+playwright-report/
+test-results/
