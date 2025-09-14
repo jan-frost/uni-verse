@@ -1,4 +1,4 @@
-import { handlePlayerMovement } from './src/player-movement.js';
+import { movePlayer } from './src/player-movement.js';
 import { generateChunk, manageChunkMemory } from './src/world.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { TILES } from './src/tiles.js';
@@ -76,7 +76,7 @@ const getTile = (currentGameState, worldX, worldY) => {
     const chunkY = Math.floor(worldY / CHUNK_HEIGHT);
     let [chunk, updatedGameState] = getChunk(currentGameState, chunkX, chunkY); // getChunk now returns [chunk, newGameState]
 
-    const localX = worldX % CHUNK_WIDTH;
+    const localX = (worldX % CHUNK_WIDTH + CHUNK_WIDTH) % CHUNK_WIDTH;
     const localY = (worldY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
 
     const index = localY * CHUNK_WIDTH + localX;
@@ -92,7 +92,10 @@ const getTile = (currentGameState, worldX, worldY) => {
 const drawGame = (gameState, display) => {
     display.clear(); // Clear the display before redrawing
 
-    const { playerX, playerY, currentChunkX, currentChunkY } = gameState;
+    const playerX = gameState.player.x;
+    const playerY = gameState.player.y;
+    const currentChunkX = gameState.currentChunk.x;
+    const currentChunkY = gameState.currentChunk.y;
 
     const { startX, startY } = calculateViewport(playerX, playerY, display);
     const currentViewportWidth = display.getOptions().width;
@@ -182,7 +185,7 @@ const drawGame = (gameState, display) => {
     }
 
     if (isDebugMode && debugOutputElement) {
-        debugOutputElement.textContent = `Player: (${player.x}, ${player.y}) | Chunk: (${currentChunk.x}, ${currentChunk.y})`;
+        debugOutputElement.textContent = `Player: (${gameState.player.x}, ${gameState.player.y}) | Chunk: (${gameState.currentChunk.x}, ${gameState.currentChunk.y})`;
     }
 };
 
@@ -196,8 +199,6 @@ window.addEventListener('resize', () => {
 });
 
 // Handle player movement
-
-
 document.addEventListener('keydown', (event) => {
     console.log('Keydown event triggered');
     const newGameState = movePlayer(gameState, event.key, (state, x, y) => getTile(state, x, y));

@@ -27,7 +27,7 @@ export function createInitialState(urlParams) {
     const worldNoise = new ROT.Noise.Simplex(seed);
     const worldCaveNoise = new ROT.Noise.Simplex(seed + 2);
 
-    const initialChunkX = parseInt(urlParams.get('chunkX')) || 0;
+    const initialChunkX = parseInt(urlParams.get('chunkx')) || 0;
     const initialChunkY = 0; // Fixed for horizontal scrolling
 
     // Player position will be set relative to the initial chunk later in main.js
