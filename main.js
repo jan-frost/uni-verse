@@ -4,6 +4,7 @@ import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { TILES } from './src/tiles.js';
 import { calculateVisibility } from './src/visibility.js';
 import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
+import { createInitialState } from './src/game-state.js';
 
 console.log("main.js loaded");
 import * as ROT from 'rot-js';
@@ -12,27 +13,12 @@ const canvas = document.getElementById('gameCanvas');
 
 // Parse URL query parameters
 const urlParams = new URLSearchParams(window.location.search);
+const isDebugMode = urlParams.has('debug');
 
-// Global World Seed
-let WORLD_SEED = urlParams.has('seed') ? parseInt(urlParams.get('seed')) : Date.now(); // Default to a random seed if no seed parameter is provided
+// Initialize game state
+let gameState = createInitialState(urlParams);
 
-// Ensure WORLD_SEED is within a safe integer range for ROT.Noise.Simplex and never 0
-WORLD_SEED = (WORLD_SEED % 65536) + 1; // Use modulo to keep it within range and ensure it's at least 1
-
-console.log(`Initial WORLD_SEED (before clamp): ${WORLD_SEED}`);
-
-// Set ROT.RNG seed globally
-ROT.RNG.setSeed(WORLD_SEED);
-
-// Global Noise Instances
-const worldNoise = new ROT.Noise.Simplex(WORLD_SEED);
-const worldCaveNoise = new ROT.Noise.Simplex(WORLD_SEED + 2); // Offset for cave noise
-
-console.log(`Final WORLD_SEED (after clamp and before noise instantiation): ${WORLD_SEED}`);
-
-// Current chunk coordinates
-let currentChunkX = parseInt(urlParams.get('chunkX')) || 0; // Default to 0
-let currentChunkY = 0; // Fixed to 0 for horizontal scrolling
+console.log(`Initial WORLD_SEED (from gameState): ${gameState.seed}`);
 
 // Initialize ROT.Display
 const display = new ROT.Display({
@@ -49,34 +35,46 @@ rotCanvas.style.border = '2px solid white';
 rotCanvas.style.boxSizing = 'border-box'; // Include padding and border in the element's total width and height.
 canvas.parentNode.replaceChild(rotCanvas, canvas);
 
-// Player position (for now, fixed at center of chunk)
-let playerX = (currentChunkX * CHUNK_WIDTH) + Math.floor(display.getOptions().width / 2);
-let playerY = Math.floor(CHUNK_HEIGHT / 2);
+let debugOutputElement;
+if (isDebugMode) {
+    debugOutputElement = document.createElement('div');
+    debugOutputElement.style.position = 'absolute';
+    debugOutputElement.style.top = '10px';
+    debugOutputElement.style.left = '10px';
+    debugOutputElement.style.color = 'white';
+    debugOutputElement.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    debugOutputElement.style.padding = '5px';
+    debugOutputElement.style.fontFamily = 'monospace';
+    debugOutputElement.style.zIndex = '1000';
+    rotCanvas.parentNode.appendChild(debugOutputElement);
+}
 
-// Cache for loaded chunks
-const loadedChunks = new Map(); // Key: `${chunkX},${chunkY}`, Value: chunk object
+// Player position (for now, fixed at center of chunk)
+gameState.player.x = (gameState.currentChunk.x * CHUNK_WIDTH) + Math.floor(display.getOptions().width / 2);
+gameState.player.y = Math.floor(CHUNK_HEIGHT / 2);
 
 // Function to get or generate a chunk
-const getChunk = (chunkX, chunkY) => {
+const getChunk = (currentGameState, chunkX, chunkY) => {
     const chunkKey = `${chunkX},${chunkY}`;
-    if (loadedChunks.has(chunkKey)) {
-        return loadedChunks.get(chunkKey);
+    if (currentGameState.chunks.has(chunkKey)) {
+        return [currentGameState.chunks.get(chunkKey), currentGameState];
     }
 
     const newChunk = generateChunk({
         chunkX,
         chunkY,
-        worldNoise, // Pass the global noise instance
-        worldCaveNoise, // Pass the global cave noise instance
+        worldNoise: currentGameState.noise.worldNoise,
+        worldCaveNoise: currentGameState.noise.worldCaveNoise,
     });
-    loadedChunks.set(chunkKey, newChunk);
-    return newChunk;
+    const newChunks = new Map(currentGameState.chunks).set(chunkKey, newChunk);
+    const newGameState = { ...currentGameState, chunks: newChunks };
+    return [newChunk, newGameState];
 };
 
-const getTile = (worldX, worldY) => {
+const getTile = (currentGameState, worldX, worldY) => {
     const chunkX = Math.floor(worldX / CHUNK_WIDTH);
     const chunkY = Math.floor(worldY / CHUNK_HEIGHT);
-    const chunk = getChunk(chunkX, chunkY);
+    let [chunk, updatedGameState] = getChunk(currentGameState, chunkX, chunkY); // getChunk now returns [chunk, newGameState]
 
     const localX = worldX % CHUNK_WIDTH;
     const localY = (worldY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
@@ -85,18 +83,16 @@ const getTile = (worldX, worldY) => {
     const tile = chunk.tiles[index];
 
     if (tile) {
-        return { ...tile, ...TILES[tile.type] };
+        return [{ ...tile, ...TILES[tile.type] }, updatedGameState];
     }
-    return null;
+    return [null, updatedGameState];
 };
 
-// Generate the initial chunk
-const initialChunk = getChunk(currentChunkX, currentChunkY);
-// const visibility = calculateVisibility({ tiles: initialChunk.tiles }); // Calculate visibility - now calculated per chunk
-
 // Function to draw the game state
-const drawGame = (playerX, playerY, currentChunkX, currentChunkY, display) => {
+const drawGame = (gameState, display) => {
     display.clear(); // Clear the display before redrawing
+
+    const { playerX, playerY, currentChunkX, currentChunkY } = gameState;
 
     const { startX, startY } = calculateViewport(playerX, playerY, display);
     const currentViewportWidth = display.getOptions().width;
@@ -111,7 +107,8 @@ const drawGame = (playerX, playerY, currentChunkX, currentChunkY, display) => {
     const centerChunkY = Math.floor(centerViewportWorldY / CHUNK_HEIGHT);
 
     // Get the chunk containing the center tile
-    const centerChunk = getChunk(centerChunkX, centerChunkY);
+    let [centerChunk, updatedGameState1] = getChunk(gameState, centerChunkX, centerChunkY);
+    gameState = updatedGameState1;
 
     // Calculate local coordinates within the center chunk
     const centerLocalX = centerViewportWorldX % CHUNK_WIDTH;
@@ -135,7 +132,8 @@ const drawGame = (playerX, playerY, currentChunkX, currentChunkY, display) => {
     const lastVisibleChunkX = Math.floor((startX + currentViewportWidth - 1) / CHUNK_WIDTH);
 
     for (let chunkX = firstVisibleChunkX; chunkX <= lastVisibleChunkX; chunkX++) {
-        const chunk = getChunk(chunkX, currentChunkY); // currentChunkY will likely be 0
+        let [chunk, updatedGameState2] = getChunk(gameState, chunkX, gameState.currentChunk.y); // currentChunkY will likely be 0
+        gameState = updatedGameState2;
         // For now, we'll assume visibility is calculated per chunk.
         // In a more advanced system, visibility would be global or per-viewport.
         const visibility = calculateVisibility({ tiles: chunk.tiles });
@@ -174,23 +172,27 @@ const drawGame = (playerX, playerY, currentChunkX, currentChunkY, display) => {
     // Draw the player
     const playerTileInfo = TILES.PLAYER;
     if (playerTileInfo) {
-        const playerViewportX = playerX - startX;
-        const playerViewportY = playerY - startY;
+        const playerViewportX = gameState.player.x - startX;
+        const playerViewportY = gameState.player.y - startY;
         // Only draw player if within viewport bounds
         if (playerViewportX >= 0 && playerViewportX < currentViewportWidth &&
             playerViewportY >= 0 && playerViewportY < currentViewportHeight) {
             display.draw(playerViewportX, playerViewportY, playerTileInfo.symbol, playerTileInfo.fg, playerTileInfo.bg);
         }
     }
+
+    if (isDebugMode && debugOutputElement) {
+        debugOutputElement.textContent = `Player: (${player.x}, ${player.y}) | Chunk: (${currentChunk.x}, ${currentChunk.y})`;
+    }
 };
 
 // Initial draw
-drawGame(playerX, playerY, currentChunkX, currentChunkY, display);
+drawGame(gameState, display);
 
 // Handle window resizing
 window.addEventListener('resize', () => {
     adjustDisplayForZoom(display);
-    drawGame(playerX, playerY, currentChunkX, currentChunkY, display);
+    drawGame(gameState, display);
 });
 
 // Handle player movement
@@ -198,26 +200,11 @@ window.addEventListener('resize', () => {
 
 document.addEventListener('keydown', (event) => {
     console.log('Keydown event triggered');
-    const { newPlayerX, newPlayerY, newCurrentChunkX, newCurrentChunkY } = handlePlayerMovement({
-        playerX,
-        playerY,
-        currentChunkX,
-        currentChunkY,
-        CHUNK_WIDTH,
-        CHUNK_HEIGHT,
-        getTile,
-        manageChunkMemory,
-        loadedChunks,
-        display,
-        drawGame,
-        eventKey: event.key,
-        getChunk
-    });
-
-    playerX = newPlayerX;
-    playerY = newPlayerY;
-    currentChunkX = newCurrentChunkX;
-    currentChunkY = newCurrentChunkY;
+    const newGameState = movePlayer(gameState, event.key, (state, x, y) => getTile(state, x, y));
+    if (newGameState !== gameState) { // Only redraw if state actually changed
+        gameState = newGameState;
+        drawGame(gameState, display);
+    }
 });
 
 // Touch controls for mobile devices
@@ -260,25 +247,11 @@ const handleTouchMove = (event) => {
     }
 
     if(eventKey) {
-        const { newPlayerX, newPlayerY, newCurrentChunkX, newCurrentChunkY } = handlePlayerMovement({
-            playerX,
-            playerY,
-            currentChunkX,
-            currentChunkY,
-            CHUNK_WIDTH,
-            CHUNK_HEIGHT,
-            getTile,
-            manageChunkMemory,
-            loadedChunks,
-            display,
-            drawGame,
-                    eventKey,
-                    getChunk
-                });
-        playerX = newPlayerX;
-        playerY = newPlayerY;
-        currentChunkX = newCurrentChunkX;
-        currentChunkY = newCurrentChunkY;
+        const newGameState = movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y));
+        if (newGameState !== gameState) { // Only redraw if state actually changed
+            gameState = newGameState;
+            drawGame(gameState, display);
+        }
     }
 };
 

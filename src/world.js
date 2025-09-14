@@ -85,24 +85,45 @@ export const getAdjacentChunkCoordinates = (currentChunkX, currentChunkY) => {
   ];
 };
 
-export const manageChunkMemory = (currentChunkX, currentChunkY, loadedChunks, getChunk) => {
+export const manageChunkMemory = (currentGameState) => {
+  const { currentChunk, chunks, noise } = currentGameState;
   const chunksToKeep = new Set();
+
   // Current chunk
-  chunksToKeep.add(`${currentChunkX},${currentChunkY}`);
+  chunksToKeep.add(`${currentChunk.x},${currentChunk.y}`);
   // Left adjacent chunk
-  chunksToKeep.add(`${currentChunkX - 1},${currentChunkY}`);
+  chunksToKeep.add(`${currentChunk.x - 1},${currentChunk.y}`);
   // Right adjacent chunk
-  chunksToKeep.add(`${currentChunkX + 1},${currentChunkY}`);
+  chunksToKeep.add(`${currentChunk.x + 1},${currentChunk.y}`);
+
+  let newChunks = new Map(chunks);
 
   // Remove chunks not in the "keep" set
-  for (const chunkKey of loadedChunks.keys()) {
+  for (const chunkKey of newChunks.keys()) {
     if (!chunksToKeep.has(chunkKey)) {
-      loadedChunks.delete(chunkKey);
+      newChunks.delete(chunkKey);
     }
   }
 
-  // Ensure current and adjacent chunks are loaded (getChunk handles generation)
-  getChunk(currentChunkX, currentChunkY);
-  getChunk(currentChunkX - 1, currentChunkY);
-  getChunk(currentChunkX + 1, currentChunkY);
+  // Ensure current and adjacent chunks are loaded (generate if not present)
+  const chunksToGenerate = [
+    { chunkX: currentChunk.x, chunkY: currentChunk.y },
+    { chunkX: currentChunk.x - 1, chunkY: currentChunk.y },
+    { chunkX: currentChunk.x + 1, chunkY: currentChunk.y },
+  ];
+
+  for (const { chunkX, chunkY } of chunksToGenerate) {
+    const chunkKey = `${chunkX},${chunkY}`;
+    if (!newChunks.has(chunkKey)) {
+      const newChunk = generateChunk({
+        chunkX,
+        chunkY,
+        worldNoise: noise.worldNoise,
+        worldCaveNoise: noise.worldCaveNoise,
+      });
+      newChunks.set(chunkKey, newChunk);
+    }
+  }
+
+  return { ...currentGameState, chunks: newChunks };
 };

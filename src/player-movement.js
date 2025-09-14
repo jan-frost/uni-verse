@@ -1,10 +1,17 @@
-export const handlePlayerMovement = ({ playerX, playerY, currentChunkX, currentChunkY, CHUNK_WIDTH, CHUNK_HEIGHT, getTile, manageChunkMemory, loadedChunks, display, drawGame, eventKey }) => {
-    const oldPlayerX = playerX;
-    const oldPlayerY = playerY;
-    const oldChunkX = currentChunkX;
+import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
+import { manageChunkMemory } from './world.js';
 
-    let newPlayerX = playerX;
-    let newPlayerY = playerY;
+/**
+ * Calculates the new game state after a player movement.
+ * @param {GameState} currentGameState - The current immutable game state.
+ * @param {string} eventKey - The key pressed (e.g., 'ArrowLeft').
+ * @param {function(GameState, number, number): [Object, GameState]} getTileFunction - Function to get tile information, returning [tile, newGameState].
+ * @returns {GameState} A new immutable game state after the movement.
+ */
+export const movePlayer = (currentGameState, eventKey, getTileFunction) => {
+    let { player, currentChunk } = currentGameState;
+    let newPlayerX = player.x;
+    let newPlayerY = player.y;
 
     switch (eventKey) {
         case 'ArrowLeft':
@@ -16,33 +23,35 @@ export const handlePlayerMovement = ({ playerX, playerY, currentChunkX, currentC
         case 'ArrowUp':
             newPlayerY--;
             break;
-        case 'ArrowDown':
+            case 'ArrowDown':
             newPlayerY++;
             break;
     }
 
     // Collision detection
-    const targetTile = getTile(newPlayerX, newPlayerY);
+    let [targetTile, updatedGameStateFromGetTile] = getTileFunction(currentGameState, newPlayerX, newPlayerY);
+    // Use the updatedGameStateFromGetTile for subsequent calculations in this function
+    // This ensures that if getTile generated a chunk, we are working with the most up-to-date state.
+    let tempGameState = updatedGameStateFromGetTile;
+
+    let finalPlayer = { ...player }; // Start with current player position
     if (targetTile && targetTile.isWalkable) {
-        playerX = newPlayerX;
-        playerY = newPlayerY;
+        finalPlayer = { x: newPlayerX, y: newPlayerY };
     }
 
     // Clamp playerY to world boundaries
-    playerY = Math.max(0, Math.min(playerY, CHUNK_HEIGHT - 1));
+    finalPlayer = { ...finalPlayer, y: Math.max(0, Math.min(finalPlayer.y, CHUNK_HEIGHT - 1)) };
 
     // Update currentChunkX based on playerX
-    currentChunkX = Math.floor(playerX / CHUNK_WIDTH);
+    const newCurrentChunkX = Math.floor(finalPlayer.x / CHUNK_WIDTH);
+    const newCurrentChunkY = currentChunk.y; // Y remains fixed for now
 
-    // Manage chunk memory if chunk changed
-    if (currentChunkX !== oldChunkX) {
-        manageChunkMemory(currentChunkX, currentChunkY, loadedChunks, getChunk);
+    let nextGameState = { ...tempGameState, player: finalPlayer, currentChunk: { x: newCurrentChunkX, y: newCurrentChunkY } };
+
+    // If chunk changed, manage chunk memory
+    if (newCurrentChunkX !== currentChunk.x) {
+        nextGameState = manageChunkMemory(nextGameState);
     }
 
-    // Redraw if player moved
-    if (playerX !== oldPlayerX || playerY !== oldPlayerY) {
-        drawGame(playerX, playerY, currentChunkX, currentChunkY, display);
-    }
-
-    return { newPlayerX: playerX, newPlayerY: playerY, newCurrentChunkX: currentChunkX, newCurrentChunkY: currentChunkY };
+    return nextGameState;
 };

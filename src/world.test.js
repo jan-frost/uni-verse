@@ -10,6 +10,14 @@ const worldCaveNoise = new ROT.Noise.Simplex(WORLD_TEST_SEED + 2);
 
 
 
+const createMockGameStateForWorld = (currentChunkX, currentChunkY, chunks = new Map()) => ({
+  seed: WORLD_TEST_SEED,
+  player: { x: 0, y: 0 }, // Player position not relevant for chunk memory management tests
+  currentChunk: { x: currentChunkX, y: currentChunkY },
+  chunks: chunks,
+  noise: { worldNoise, worldCaveNoise },
+});
+
 test('World Generation', () => {
   ROT.RNG.setSeed(WORLD_TEST_SEED); // Reset RNG for consistent world generation tests
   test('should return a chunk with correct dimensions', () => {
@@ -79,96 +87,50 @@ test('Chunk Management', () => {
 
 test('Chunk Memory Management', () => {
   test('should correctly manage chunks when loadedChunks is empty', () => {
-    const loadedChunks = new Map();
-    const getChunkCalls = [];
-    const mockGetChunk = (chunkX, chunkY) => {
-      getChunkCalls.push({ chunkX, chunkY });
-      const chunkKey = `${chunkX},${chunkY}`;
-      const dummyChunk = `chunk_${chunkX},${chunkY}`;
-      loadedChunks.set(chunkKey, dummyChunk); // Add to loadedChunks
-      return dummyChunk;
-    };
+    let initialGameState = createMockGameStateForWorld(0, 0);
+    let newGameState = manageChunkMemory(initialGameState);
 
-    manageChunkMemory(0, 0, loadedChunks, mockGetChunk);
-
-    assert.strictEqual(getChunkCalls.length, 3, 'getChunk should be called 3 times');
-    assert.deepStrictEqual(getChunkCalls, [
-      { chunkX: 0, chunkY: 0 },
-      { chunkX: -1, chunkY: 0 },
-      { chunkX: 1, chunkY: 0 },
-    ], 'getChunk should be called for current and adjacent chunks');
-
-    assert.strictEqual(loadedChunks.size, 3, 'loadedChunks should contain 3 chunks');
-    assert.ok(loadedChunks.has('0,0'), 'loadedChunks should contain 0,0');
-    assert.ok(loadedChunks.has('-1,0'), 'loadedChunks should contain -1,0');
-    assert.ok(loadedChunks.has('1,0'), 'loadedChunks should contain 1,0');
+    assert.strictEqual(newGameState.chunks.size, 3, 'newGameState.chunks should contain 3 chunks');
+    assert.ok(newGameState.chunks.has('0,0'), 'newGameState.chunks should contain 0,0');
+    assert.ok(newGameState.chunks.has('-1,0'), 'newGameState.chunks should contain -1,0');
+    assert.ok(newGameState.chunks.has('1,0'), 'newGameState.chunks should contain 1,0');
   });
 
   test('should remove old chunks and load new ones when player moves to a new chunk', () => {
-    const loadedChunks = new Map();
-    // Pre-populate with some chunks
-    loadedChunks.set('-2,0', 'chunk_-2,0');
-    loadedChunks.set('-1,0', 'chunk_-1,0');
-    loadedChunks.set('0,0', 'chunk_0,0');
-    loadedChunks.set('1,0', 'chunk_1,0');
-    loadedChunks.set('2,0', 'chunk_2,0');
+    const initialChunks = new Map();
+    initialChunks.set('-2,0', generateChunk({ chunkX: -2, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('-1,0', generateChunk({ chunkX: -1, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('0,0', generateChunk({ chunkX: 0, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('1,0', generateChunk({ chunkX: 1, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('2,0', generateChunk({ chunkX: 2, chunkY: 0, worldNoise, worldCaveNoise }));
 
-    const getChunkCalls = [];
-    const mockGetChunk = (chunkX, chunkY) => {
-      getChunkCalls.push({ chunkX, chunkY });
-      const chunkKey = `${chunkX},${chunkY}`;
-      const dummyChunk = `chunk_${chunkX},${chunkY}`;
-      loadedChunks.set(chunkKey, dummyChunk); // Add to loadedChunks
-      return dummyChunk;
-    };
+    let initialGameState = createMockGameStateForWorld(0, 0, initialChunks);
+    // Simulate player moving to chunk 1
+    initialGameState = { ...initialGameState, currentChunk: { x: 1, y: 0 } };
 
-    // Move from chunk 0 to chunk 1
-    manageChunkMemory(1, 0, loadedChunks, mockGetChunk);
+    let newGameState = manageChunkMemory(initialGameState);
 
-    assert.strictEqual(getChunkCalls.length, 3, 'getChunk should be called 3 times for new adjacent chunks');
-    assert.deepStrictEqual(getChunkCalls, [
-      { chunkX: 1, chunkY: 0 },
-      { chunkX: 0, chunkY: 0 },
-      { chunkX: 2, chunkY: 0 },
-    ], 'getChunk should be called for new current and adjacent chunks');
-
-    assert.strictEqual(loadedChunks.size, 3, 'loadedChunks should contain 3 chunks');
-    assert.ok(loadedChunks.has('0,0'), 'loadedChunks should contain 0,0');
-    assert.ok(loadedChunks.has('1,0'), 'loadedChunks should contain 1,0');
-    assert.ok(loadedChunks.has('2,0'), 'loadedChunks should contain 2,0');
-    assert.ok(!loadedChunks.has('-2,0'), 'loadedChunks should not contain -2,0');
-    assert.ok(!loadedChunks.has('-1,0'), 'loadedChunks should not contain -1,0');
+    assert.strictEqual(newGameState.chunks.size, 3, 'newGameState.chunks should contain 3 chunks');
+    assert.ok(newGameState.chunks.has('0,0'), 'newGameState.chunks should contain 0,0');
+    assert.ok(newGameState.chunks.has('1,0'), 'newGameState.chunks should contain 1,0');
+    assert.ok(newGameState.chunks.has('2,0'), 'newGameState.chunks should contain 2,0');
+    assert.ok(!newGameState.chunks.has('-2,0'), 'newGameState.chunks should not contain -2,0');
+    assert.ok(!newGameState.chunks.has('-1,0'), 'newGameState.chunks should not contain -1,0');
   });
 
   test('should not remove or load chunks when player moves within the same chunk', () => {
-    const loadedChunks = new Map();
-    // Pre-populate with chunks around 0,0
-    loadedChunks.set('-1,0', 'chunk_-1,0');
-    loadedChunks.set('0,0', 'chunk_0,0');
-    loadedChunks.set('1,0', 'chunk_1,0');
+    const initialChunks = new Map();
+    initialChunks.set('-1,0', generateChunk({ chunkX: -1, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('0,0', generateChunk({ chunkX: 0, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('1,0', generateChunk({ chunkX: 1, chunkY: 0, worldNoise, worldCaveNoise }));
 
-    const getChunkCalls = [];
-    const mockGetChunk = (chunkX, chunkY) => {
-      getChunkCalls.push({ chunkX, chunkY });
-      const chunkKey = `${chunkX},${chunkY}`;
-      const dummyChunk = `chunk_${chunkX},${chunkY}`;
-      loadedChunks.set(chunkKey, dummyChunk); // Add to loadedChunks
-      return dummyChunk;
-    };
+    let initialGameState = createMockGameStateForWorld(0, 0, initialChunks);
+    let newGameState = manageChunkMemory(initialGameState);
 
-    // Move within the same chunk (currentChunkX remains 0)
-    manageChunkMemory(0, 0, loadedChunks, mockGetChunk);
-
-    assert.strictEqual(getChunkCalls.length, 3, 'getChunk should be called 3 times to ensure presence');
-    assert.deepStrictEqual(getChunkCalls, [
-      { chunkX: 0, chunkY: 0 },
-      { chunkX: -1, chunkY: 0 },
-      { chunkX: 1, chunkY: 0 },
-    ], 'getChunk should be called for current and adjacent chunks');
-
-    assert.strictEqual(loadedChunks.size, 3, 'loadedChunks should still contain 3 chunks');
-    assert.ok(loadedChunks.has('0,0'), 'loadedChunks should contain 0,0');
-    assert.ok(loadedChunks.has('-1,0'), 'loadedChunks should contain -1,0');
-    assert.ok(loadedChunks.has('1,0'), 'loadedChunks should contain 1,0');
+    assert.strictEqual(newGameState.chunks.size, 3, 'newGameState.chunks should still contain 3 chunks');
+    assert.ok(newGameState.chunks.has('0,0'), 'newGameState.chunks should contain 0,0');
+    assert.ok(newGameState.chunks.has('-1,0'), 'newGameState.chunks should contain -1,0');
+    assert.ok(newGameState.chunks.has('1,0'), 'newGameState.chunks should contain 1,0');
+    assert.deepStrictEqual(newGameState.chunks, initialGameState.chunks, 'Chunks should be the same if no movement across chunk boundaries');
   });
 });
