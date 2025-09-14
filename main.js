@@ -1,3 +1,4 @@
+import { handlePlayerMovement } from './src/player-movement.js';
 import { generateChunk, manageChunkMemory } from './src/world.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { TILES } from './src/tiles.js';
@@ -70,6 +71,23 @@ const getChunk = (chunkX, chunkY) => {
     });
     loadedChunks.set(chunkKey, newChunk);
     return newChunk;
+};
+
+const getTile = (worldX, worldY) => {
+    const chunkX = Math.floor(worldX / CHUNK_WIDTH);
+    const chunkY = Math.floor(worldY / CHUNK_HEIGHT);
+    const chunk = getChunk(chunkX, chunkY);
+
+    const localX = worldX % CHUNK_WIDTH;
+    const localY = (worldY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
+
+    const index = localY * CHUNK_WIDTH + localX;
+    const tile = chunk.tiles[index];
+
+    if (tile) {
+        return { ...tile, ...TILES[tile.type] };
+    }
+    return null;
 };
 
 // Generate the initial chunk
@@ -176,41 +194,93 @@ window.addEventListener('resize', () => {
 });
 
 // Handle player movement
+
+
 document.addEventListener('keydown', (event) => {
-    const oldPlayerX = playerX;
-    const oldPlayerY = playerY;
-    const oldChunkX = currentChunkX; // Store old chunkX
+    console.log('Keydown event triggered');
+    const { newPlayerX, newPlayerY, newCurrentChunkX, newCurrentChunkY } = handlePlayerMovement({
+        playerX,
+        playerY,
+        currentChunkX,
+        currentChunkY,
+        CHUNK_WIDTH,
+        CHUNK_HEIGHT,
+        getTile,
+        manageChunkMemory,
+        loadedChunks,
+        display,
+        drawGame,
+        eventKey: event.key,
+        getChunk
+    });
 
-    // console.log statements removed for brevity, will be re-added if needed for debugging
-
-    switch (event.key) {
-        case 'ArrowLeft':
-            playerX--;
-            break;
-        case 'ArrowRight':
-            playerX++;
-            break;
-        case 'ArrowUp':
-            playerY--;
-            break;
-        case 'ArrowDown':
-            playerY++;
-            break;
-    }
-
-    // Clamp playerY to world boundaries
-    playerY = Math.max(0, Math.min(playerY, CHUNK_HEIGHT - 1));
-
-    // Update currentChunkX based on playerX
-    currentChunkX = Math.floor(playerX / CHUNK_WIDTH);
-
-    // Manage chunk memory if chunk changed
-    if (currentChunkX !== oldChunkX) {
-        manageChunkMemory(currentChunkX, currentChunkY, loadedChunks, getChunk);
-    }
-
-    // Redraw if player moved
-    if (playerX !== oldPlayerX || playerY !== oldPlayerY) {
-        drawGame(playerX, playerY, currentChunkX, currentChunkY, display);
-    }
+    playerX = newPlayerX;
+    playerY = newPlayerY;
+    currentChunkX = newCurrentChunkX;
+    currentChunkY = newCurrentChunkY;
 });
+
+// Touch controls for mobile devices
+let lastTouchMoveTime = 0;
+const TOUCH_MOVE_DEBOUNCE_TIME = 100; // milliseconds
+
+const handleTouchMove = (event) => {
+    console.log('Touch event triggered');
+    event.preventDefault(); // Prevent scrolling
+    const currentTime = Date.now();
+    if (currentTime - lastTouchMoveTime < TOUCH_MOVE_DEBOUNCE_TIME) {
+        return; // Debounce touch events
+    }
+    lastTouchMoveTime = currentTime;
+
+    const touch = event.touches[0];
+    const rect = rotCanvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+
+    const canvasWidth = rotCanvas.offsetWidth;
+    const canvasHeight = rotCanvas.offsetHeight;
+
+    // Define touch regions (e.g., 1/4 of the canvas width/height from edges)
+    const edgeThresholdX = canvasWidth / 4;
+    const edgeThresholdY = canvasHeight / 4;
+
+    let eventKey = '';
+
+    if (x < edgeThresholdX) {
+        eventKey = 'ArrowLeft';
+    } else if (x > canvasWidth - edgeThresholdX) {
+        eventKey = 'ArrowRight';
+    }
+
+    if (y < edgeThresholdY) {
+        eventKey = 'ArrowUp';
+    } else if (y > canvasHeight - edgeThresholdY) {
+        eventKey = 'ArrowDown';
+    }
+
+    if(eventKey) {
+        const { newPlayerX, newPlayerY, newCurrentChunkX, newCurrentChunkY } = handlePlayerMovement({
+            playerX,
+            playerY,
+            currentChunkX,
+            currentChunkY,
+            CHUNK_WIDTH,
+            CHUNK_HEIGHT,
+            getTile,
+            manageChunkMemory,
+            loadedChunks,
+            display,
+            drawGame,
+                    eventKey,
+                    getChunk
+                });
+        playerX = newPlayerX;
+        playerY = newPlayerY;
+        currentChunkX = newCurrentChunkX;
+        currentChunkY = newCurrentChunkY;
+    }
+};
+
+rotCanvas.addEventListener('touchstart', handleTouchMove, { passive: false });
+rotCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
