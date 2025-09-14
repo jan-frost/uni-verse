@@ -152,6 +152,18 @@ const drawGame = (playerX, playerY, currentChunkX, currentChunkY, display) => {
             }
         }
     }
+
+    // Draw the player
+    const playerTileInfo = TILES.PLAYER;
+    if (playerTileInfo) {
+        const playerViewportX = playerX - startX;
+        const playerViewportY = playerY - startY;
+        // Only draw player if within viewport bounds
+        if (playerViewportX >= 0 && playerViewportX < currentViewportWidth &&
+            playerViewportY >= 0 && playerViewportY < currentViewportHeight) {
+            display.draw(playerViewportX, playerViewportY, playerTileInfo.symbol, playerTileInfo.fg, playerTileInfo.bg);
+        }
+    }
 };
 
 // Initial draw

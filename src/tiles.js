@@ -8,4 +8,5 @@ export const TILES = {
   WOOD: { symbol: 'T', fg: '#5A2D0A', bg: '#3B1E0A', isWalkable: false, isTransparent: false },
   LEAF: { symbol: 'L', fg: '#228B22', bg: '#006400', isWalkable: false, isTransparent: true },
   GROUND: { symbol: 'D', fg: '#CD853F', bg: '#8B4513', isWalkable: false, isTransparent: false },
+  PLAYER: { symbol: '🤩', fg: 'yellow', bg: 'transparent', isWalkable: true, isTransparent: true },
 };
