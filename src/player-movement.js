@@ -29,7 +29,7 @@ export const movePlayer = async (currentGameState, eventKey, getTileFunction, st
     }
 
     // Collision detection
-    let [targetTile, updatedGameStateFromGetTile] = getTileFunction(currentGameState, newPlayerX, newPlayerY);
+    let [targetTile, updatedGameStateFromGetTile] = await getTileFunction(currentGameState, newPlayerX, newPlayerY);
     // Use the updatedGameStateFromGetTile for subsequent calculations in this function
     // This ensures that if getTile generated a chunk, we are working with the most up-to-date state.
     let tempGameState = updatedGameStateFromGetTile;
