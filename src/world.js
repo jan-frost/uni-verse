@@ -1,7 +1,8 @@
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
 import * as ROT from 'rot-js';
 
-export const generateChunk = (options) => {
+
+export const generateChunk = async (options, storage) => {
   const chunkWidth = options.width || CHUNK_WIDTH;
   const chunkHeight = options.height || CHUNK_HEIGHT;
   const tiles = new Array(chunkWidth * chunkHeight).fill(null);
@@ -73,6 +74,15 @@ export const generateChunk = (options) => {
       }
     }
   }
+
+  const storedChunk = await storage.getChunk(chunkX);
+  if (storedChunk) {
+    for (const { x, y, tile } of storedChunk.tiles) {
+      const index = y * chunkWidth + x;
+      tiles[index] = tile;
+    }
+  }
+
   return {
     tiles,
   };
@@ -85,7 +95,7 @@ export const getAdjacentChunkCoordinates = (currentChunkX, currentChunkY) => {
   ];
 };
 
-export const manageChunkMemory = (currentGameState) => {
+export const manageChunkMemory = async (currentGameState, storage) => {
   const { currentChunk, chunks, noise } = currentGameState;
   const chunksToKeep = new Set();
 
@@ -115,12 +125,12 @@ export const manageChunkMemory = (currentGameState) => {
   for (const { chunkX, chunkY } of chunksToGenerate) {
     const chunkKey = `${chunkX},${chunkY}`;
     if (!newChunks.has(chunkKey)) {
-      const newChunk = generateChunk({
+      const newChunk = await generateChunk({
         chunkX,
         chunkY,
         worldNoise: noise.worldNoise,
         worldCaveNoise: noise.worldCaveNoise,
-      });
+      }, storage);
       newChunks.set(chunkKey, newChunk);
     }
   }

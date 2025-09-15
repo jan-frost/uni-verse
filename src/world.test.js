@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { generateChunk, getAdjacentChunkCoordinates, manageChunkMemory } from './world.js';
 import * as ROT from 'rot-js';
+import { FakeStorage } from './storage.js';
+
+const storage = new FakeStorage();
 
 // Global World Seed for tests
 const WORLD_TEST_SEED = 12345;
@@ -18,17 +21,17 @@ const createMockGameStateForWorld = (currentChunkX, currentChunkY, chunks = new 
   noise: { worldNoise, worldCaveNoise },
 });
 
-test('World Generation', () => {
+test('World Generation', async () => {
   ROT.RNG.setSeed(WORLD_TEST_SEED); // Reset RNG for consistent world generation tests
-  test('should return a chunk with correct dimensions', () => {
-    const chunk = generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
+  test('should return a chunk with correct dimensions', async () => {
+    const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
     assert.ok(chunk.tiles, 'chunk should have a tiles property');
     assert.ok(Array.isArray(chunk.tiles), 'chunk.tiles should be an array');
     assert.strictEqual(chunk.tiles.length, 8 * 8, 'chunk.tiles should have the correct size');
   });
 
-  test('should generate varied elevation using noise', () => {
-    const chunk = generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
+  test('should generate varied elevation using noise', async () => {
+    const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
 
     const hasAir = chunk.tiles.some(tile => tile && tile.type === 'AIR');
     const hasGround = chunk.tiles.some(tile => tile && tile.type === 'GROUND');
@@ -36,8 +39,8 @@ test('World Generation', () => {
     assert.ok(hasGround, 'should have some GROUND tiles');
   });
 
-  test('should generate caves within ground areas', () => {
-    const chunk = generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
+  test('should generate caves within ground areas', async () => {
+    const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
 
     const hasCaveAir = chunk.tiles.some((tile, index) => {
       const y = Math.floor(index / 8);
@@ -46,8 +49,8 @@ test('World Generation', () => {
     assert.ok(hasCaveAir, 'should have some AIR tiles within ground areas (caves)');
   });
 
-  test('should place structures like trees on the surface', () => {
-    const chunk = generateChunk({ chunkX: 0, chunkY: 0, width: 32, height: 32, worldNoise, worldCaveNoise });
+  test('should place structures like trees on the surface', async () => {
+    const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 32, height: 32, worldNoise, worldCaveNoise }, storage);
 
     const woodTiles = chunk.tiles.filter(tile => tile && tile.type === 'WOOD');
     const leafTiles = chunk.tiles.filter(tile => tile && tile.type === 'LEAF');
@@ -60,17 +63,17 @@ test('World Generation', () => {
   });
 });
 
-test('Chunk Management', () => {
+test('Chunk Management', async () => {
   ROT.RNG.setSeed(WORLD_TEST_SEED); // Reset RNG for consistent chunk management tests
-  test('generateChunk should produce consistent results for same coordinates', () => {
-    const chunk1 = generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
-    const chunk2 = generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
+  test('generateChunk should produce consistent results for same coordinates', async () => {
+    const chunk1 = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
+    const chunk2 = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
     assert.deepStrictEqual(chunk1.tiles, chunk2.tiles, 'Chunks with same coordinates should be identical');
   });
 
-  test('generateChunk should produce different results for different coordinates', () => {
-    const chunk1 = generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
-    const chunk3 = generateChunk({ chunkX: 1, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise });
+  test('generateChunk should produce different results for different coordinates', async () => {
+    const chunk1 = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
+    const chunk3 = await generateChunk({ chunkX: 1, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
     assert.notDeepStrictEqual(chunk1.tiles, chunk3.tiles, 'Chunks with different coordinates should be different');
   });
 
@@ -85,10 +88,10 @@ test('Chunk Management', () => {
   });
 });
 
-test('Chunk Memory Management', () => {
-  test('should correctly manage chunks when loadedChunks is empty', () => {
+test('Chunk Memory Management', async () => {
+  test('should correctly manage chunks when loadedChunks is empty', async () => {
     let initialGameState = createMockGameStateForWorld(0, 0);
-    let newGameState = manageChunkMemory(initialGameState);
+    let newGameState = await manageChunkMemory(initialGameState, storage);
 
     assert.strictEqual(newGameState.chunks.size, 3, 'newGameState.chunks should contain 3 chunks');
     assert.ok(newGameState.chunks.has('0,0'), 'newGameState.chunks should contain 0,0');
@@ -96,19 +99,19 @@ test('Chunk Memory Management', () => {
     assert.ok(newGameState.chunks.has('1,0'), 'newGameState.chunks should contain 1,0');
   });
 
-  test('should remove old chunks and load new ones when player moves to a new chunk', () => {
+  test('should remove old chunks and load new ones when player moves to a new chunk', async () => {
     const initialChunks = new Map();
-    initialChunks.set('-2,0', generateChunk({ chunkX: -2, chunkY: 0, worldNoise, worldCaveNoise }));
-    initialChunks.set('-1,0', generateChunk({ chunkX: -1, chunkY: 0, worldNoise, worldCaveNoise }));
-    initialChunks.set('0,0', generateChunk({ chunkX: 0, chunkY: 0, worldNoise, worldCaveNoise }));
-    initialChunks.set('1,0', generateChunk({ chunkX: 1, chunkY: 0, worldNoise, worldCaveNoise }));
-    initialChunks.set('2,0', generateChunk({ chunkX: 2, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('-2,0', await generateChunk({ chunkX: -2, chunkY: 0, worldNoise, worldCaveNoise }, storage));
+    initialChunks.set('-1,0', await generateChunk({ chunkX: -1, chunkY: 0, worldNoise, worldCaveNoise }, storage));
+    initialChunks.set('0,0', await generateChunk({ chunkX: 0, chunkY: 0, worldNoise, worldCaveNoise }, storage));
+    initialChunks.set('1,0', await generateChunk({ chunkX: 1, chunkY: 0, worldNoise, worldCaveNoise }, storage));
+    initialChunks.set('2,0', await generateChunk({ chunkX: 2, chunkY: 0, worldNoise, worldCaveNoise }, storage));
 
     let initialGameState = createMockGameStateForWorld(0, 0, initialChunks);
     // Simulate player moving to chunk 1
     initialGameState = { ...initialGameState, currentChunk: { x: 1, y: 0 } };
 
-    let newGameState = manageChunkMemory(initialGameState);
+    let newGameState = await manageChunkMemory(initialGameState, storage);
 
     assert.strictEqual(newGameState.chunks.size, 3, 'newGameState.chunks should contain 3 chunks');
     assert.ok(newGameState.chunks.has('0,0'), 'newGameState.chunks should contain 0,0');
@@ -118,14 +121,14 @@ test('Chunk Memory Management', () => {
     assert.ok(!newGameState.chunks.has('-1,0'), 'newGameState.chunks should not contain -1,0');
   });
 
-  test('should not remove or load chunks when player moves within the same chunk', () => {
+  test('should not remove or load chunks when player moves within the same chunk', async () => {
     const initialChunks = new Map();
-    initialChunks.set('-1,0', generateChunk({ chunkX: -1, chunkY: 0, worldNoise, worldCaveNoise }));
-    initialChunks.set('0,0', generateChunk({ chunkX: 0, chunkY: 0, worldNoise, worldCaveNoise }));
-    initialChunks.set('1,0', generateChunk({ chunkX: 1, chunkY: 0, worldNoise, worldCaveNoise }));
+    initialChunks.set('-1,0', await generateChunk({ chunkX: -1, chunkY: 0, worldNoise, worldCaveNoise }, storage));
+    initialChunks.set('0,0', await generateChunk({ chunkX: 0, chunkY: 0, worldNoise, worldCaveNoise }, storage));
+    initialChunks.set('1,0', await generateChunk({ chunkX: 1, chunkY: 0, worldNoise, worldCaveNoise }, storage));
 
     let initialGameState = createMockGameStateForWorld(0, 0, initialChunks);
-    let newGameState = manageChunkMemory(initialGameState);
+    let newGameState = await manageChunkMemory(initialGameState, storage);
 
     assert.strictEqual(newGameState.chunks.size, 3, 'newGameState.chunks should still contain 3 chunks');
     assert.ok(newGameState.chunks.has('0,0'), 'newGameState.chunks should contain 0,0');

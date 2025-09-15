@@ -5,6 +5,9 @@ import { TILES } from './src/tiles.js';
 import { calculateVisibility } from './src/visibility.js';
 import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
 import { createInitialState } from './src/game-state.js';
+import { BrowserStorage } from './src/browser-storage.js';
+
+const storage = new BrowserStorage();
 
 console.log("main.js loaded");
 import * as ROT from 'rot-js';
@@ -54,27 +57,27 @@ gameState.player.x = (gameState.currentChunk.x * CHUNK_WIDTH) + Math.floor(displ
 gameState.player.y = Math.floor(CHUNK_HEIGHT / 2);
 
 // Function to get or generate a chunk
-const getChunk = (currentGameState, chunkX, chunkY) => {
+const getChunk = async (currentGameState, chunkX, chunkY) => {
     const chunkKey = `${chunkX},${chunkY}`;
     if (currentGameState.chunks.has(chunkKey)) {
         return [currentGameState.chunks.get(chunkKey), currentGameState];
     }
 
-    const newChunk = generateChunk({
+    const newChunk = await generateChunk({
         chunkX,
         chunkY,
         worldNoise: currentGameState.noise.worldNoise,
         worldCaveNoise: currentGameState.noise.worldCaveNoise,
-    });
+    }, storage);
     const newChunks = new Map(currentGameState.chunks).set(chunkKey, newChunk);
     const newGameState = { ...currentGameState, chunks: newChunks };
     return [newChunk, newGameState];
 };
 
-const getTile = (currentGameState, worldX, worldY) => {
+const getTile = async (currentGameState, worldX, worldY) => {
     const chunkX = Math.floor(worldX / CHUNK_WIDTH);
     const chunkY = Math.floor(worldY / CHUNK_HEIGHT);
-    let [chunk, updatedGameState] = getChunk(currentGameState, chunkX, chunkY); // getChunk now returns [chunk, newGameState]
+    let [chunk, updatedGameState] = await getChunk(currentGameState, chunkX, chunkY); // getChunk now returns [chunk, newGameState]
 
     const localX = (worldX % CHUNK_WIDTH + CHUNK_WIDTH) % CHUNK_WIDTH;
     const localY = (worldY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
@@ -89,7 +92,7 @@ const getTile = (currentGameState, worldX, worldY) => {
 };
 
 // Function to draw the game state
-const drawGame = (gameState, display) => {
+const drawGame = async (gameState, display) => {
     display.clear(); // Clear the display before redrawing
 
     const playerX = gameState.player.x;
@@ -110,7 +113,7 @@ const drawGame = (gameState, display) => {
     const centerChunkY = Math.floor(centerViewportWorldY / CHUNK_HEIGHT);
 
     // Get the chunk containing the center tile
-    let [centerChunk, updatedGameState1] = getChunk(gameState, centerChunkX, centerChunkY);
+    let [centerChunk, updatedGameState1] = await getChunk(gameState, centerChunkX, centerChunkY);
     gameState = updatedGameState1;
 
     // Calculate local coordinates within the center chunk
@@ -135,7 +138,7 @@ const drawGame = (gameState, display) => {
     const lastVisibleChunkX = Math.floor((startX + currentViewportWidth - 1) / CHUNK_WIDTH);
 
     for (let chunkX = firstVisibleChunkX; chunkX <= lastVisibleChunkX; chunkX++) {
-        let [chunk, updatedGameState2] = getChunk(gameState, chunkX, gameState.currentChunk.y); // currentChunkY will likely be 0
+        let [chunk, updatedGameState2] = await getChunk(gameState, chunkX, gameState.currentChunk.y); // currentChunkY will likely be 0
         gameState = updatedGameState2;
         // For now, we'll assume visibility is calculated per chunk.
         // In a more advanced system, visibility would be global or per-viewport.
@@ -190,7 +193,9 @@ const drawGame = (gameState, display) => {
 };
 
 // Initial draw
-drawGame(gameState, display);
+(async () => {
+    await drawGame(gameState, display);
+})();
 
 // Handle window resizing
 window.addEventListener('resize', () => {
@@ -201,11 +206,13 @@ window.addEventListener('resize', () => {
 // Handle player movement
 document.addEventListener('keydown', (event) => {
     console.log('Keydown event triggered');
-    const newGameState = movePlayer(gameState, event.key, (state, x, y) => getTile(state, x, y));
-    if (newGameState !== gameState) { // Only redraw if state actually changed
-        gameState = newGameState;
-        drawGame(gameState, display);
-    }
+    (async () => {
+        const newGameState = await movePlayer(gameState, event.key, (state, x, y) => getTile(state, x, y), storage);
+        if (newGameState !== gameState) { // Only redraw if state actually changed
+            gameState = newGameState;
+            await drawGame(gameState, display);
+        }
+    })();
 });
 
 // Touch controls for mobile devices
@@ -248,11 +255,13 @@ const handleTouchMove = (event) => {
     }
 
     if(eventKey) {
-        const newGameState = movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y));
-        if (newGameState !== gameState) { // Only redraw if state actually changed
-            gameState = newGameState;
-            drawGame(gameState, display);
-        }
+        (async () => {
+            const newGameState = await movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y), storage);
+            if (newGameState !== gameState) { // Only redraw if state actually changed
+                gameState = newGameState;
+                await drawGame(gameState, display);
+            }
+        })();
     }
 };
 

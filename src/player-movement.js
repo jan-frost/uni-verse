@@ -8,7 +8,7 @@ import { manageChunkMemory } from './world.js';
  * @param {function(GameState, number, number): [Object, GameState]} getTileFunction - Function to get tile information, returning [tile, newGameState].
  * @returns {GameState} A new immutable game state after the movement.
  */
-export const movePlayer = (currentGameState, eventKey, getTileFunction) => {
+export const movePlayer = async (currentGameState, eventKey, getTileFunction, storage) => {
     let { player, currentChunk } = currentGameState;
     let newPlayerX = player.x;
     let newPlayerY = player.y;
@@ -37,6 +37,11 @@ export const movePlayer = (currentGameState, eventKey, getTileFunction) => {
     let finalPlayer = { ...player }; // Start with current player position
     if (targetTile && targetTile.isWalkable) {
         finalPlayer = { x: newPlayerX, y: newPlayerY };
+    } else if (targetTile) {
+        // Collided with a non-walkable tile, so dig it.
+        const chunkX = Math.floor(newPlayerX / CHUNK_WIDTH);
+        const x = newPlayerX % CHUNK_WIDTH;
+        await storage.saveTile(chunkX, x, newPlayerY, { type: 'AIR' });
     }
 
     // Clamp playerY to world boundaries
@@ -50,7 +55,7 @@ export const movePlayer = (currentGameState, eventKey, getTileFunction) => {
 
     // If chunk changed, manage chunk memory
     if (newCurrentChunkX !== currentChunk.x) {
-        nextGameState = manageChunkMemory(nextGameState);
+        nextGameState = await manageChunkMemory(nextGameState, storage);
     }
 
     return nextGameState;

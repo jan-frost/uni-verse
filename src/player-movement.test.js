@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { movePlayer } from './player-movement.js';
 import { TILES } from './tiles.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
+import { FakeStorage } from './storage.js';
 
 // Helper to create a mock initial game state
 const createMockGameState = (playerX, playerY, currentChunkX, currentChunkY, chunks = new Map()) => ({
@@ -23,7 +24,7 @@ const createMockGetTileFunction = (mockTiles, initialGameState) => (gameState, x
   return [tile, gameState]; // For tests, we assume getTile doesn't change the gameState
 };
 
-test('player can move into walkable tiles', () => {
+test('player can move into walkable tiles', async () => {
   const initialPlayerX = 5;
   const initialPlayerY = 5;
   const initialChunkX = 0;
@@ -38,14 +39,14 @@ test('player can move into walkable tiles', () => {
 
   const eventKey = 'ArrowRight';
 
-  const newGameState = movePlayer(initialGameState, eventKey, mockGetTile);
+  const newGameState = await movePlayer(initialGameState, eventKey, mockGetTile, new FakeStorage());
 
   assert.strictEqual(newGameState.player.x, 6, 'Player X should be 6');
   assert.strictEqual(newGameState.player.y, 5, 'Player Y should remain 5');
   assert.strictEqual(newGameState.currentChunk.x, 0, 'Chunk X should remain 0');
 });
 
-test('player cannot move into non-walkable tiles', () => {
+test('player cannot move into non-walkable tiles', async () => {
   const initialPlayerX = 5;
   const initialPlayerY = 5;
   const initialChunkX = 0;
@@ -60,13 +61,13 @@ test('player cannot move into non-walkable tiles', () => {
 
   const eventKey = 'ArrowRight';
 
-  const newGameState = movePlayer(initialGameState, eventKey, mockGetTile);
+  const newGameState = await movePlayer(initialGameState, eventKey, mockGetTile, new FakeStorage());
 
   assert.strictEqual(newGameState.player.x, 5, 'Player X should remain 5 (blocked)');
   assert.strictEqual(newGameState.player.y, 5, 'Player Y should remain 5');
 });
 
-test('player Y position is clamped to world boundaries', () => {
+test('player Y position is clamped to world boundaries', async () => {
   const initialPlayerX = 5;
   const initialChunkX = 0;
   const initialChunkY = 0;
@@ -76,16 +77,16 @@ test('player Y position is clamped to world boundaries', () => {
   const mockGetTile = createMockGetTileFunction(mockTiles, initialGameState);
 
   // Test moving up beyond top boundary
-  let newGameState = movePlayer(initialGameState, 'ArrowUp', mockGetTile);
+  let newGameState = await movePlayer(initialGameState, 'ArrowUp', mockGetTile, new FakeStorage());
   assert.strictEqual(newGameState.player.y, 0, 'Player Y should be clamped at 0 when moving up');
 
   // Test moving down beyond bottom boundary
   const gameStateAtBottom = createMockGameState(initialPlayerX, CHUNK_HEIGHT - 1, initialChunkX, initialChunkY);
-  newGameState = movePlayer(gameStateAtBottom, 'ArrowDown', mockGetTile);
+  newGameState = await movePlayer(gameStateAtBottom, 'ArrowDown', mockGetTile, new FakeStorage());
   assert.strictEqual(newGameState.player.y, CHUNK_HEIGHT - 1, 'Player Y should be clamped at CHUNK_HEIGHT - 1 when moving down');
 });
 
-test('player moves across chunk boundary updates currentChunkX', () => {
+test('player moves across chunk boundary updates currentChunkX', async () => {
   const initialPlayerX = CHUNK_WIDTH - 1; // At the right edge of chunk 0
   const initialPlayerY = 5;
   const initialChunkX = 0;
@@ -97,8 +98,36 @@ test('player moves across chunk boundary updates currentChunkX', () => {
 
   const eventKey = 'ArrowRight';
 
-  const newGameState = movePlayer(initialGameState, eventKey, mockGetTile);
+  const newGameState = await movePlayer(initialGameState, eventKey, mockGetTile, new FakeStorage());
 
   assert.strictEqual(newGameState.player.x, CHUNK_WIDTH, 'Player X should be CHUNK_WIDTH');
   assert.strictEqual(newGameState.currentChunk.x, 1, 'Chunk X should be 1');
+});
+
+test('player digs non-walkable tiles', async () => {
+  const initialPlayerX = 5;
+  const initialPlayerY = 5;
+  const initialChunkX = 0;
+  const initialChunkY = 0;
+
+  const mockTiles = {
+    '6,5': TILES.GROUND, // Target tile is non-walkable
+  };
+
+  const initialGameState = createMockGameState(initialPlayerX, initialPlayerY, initialChunkX, initialChunkY);
+  const mockGetTile = createMockGetTileFunction(mockTiles, initialGameState);
+  const storage = new FakeStorage();
+
+  const eventKey = 'ArrowRight';
+
+  const newGameState = await movePlayer(initialGameState, eventKey, mockGetTile, storage);
+
+  assert.strictEqual(newGameState.player.x, 5, 'Player X should remain 5 (blocked)');
+  assert.strictEqual(newGameState.player.y, 5, 'Player Y should remain 5');
+
+  const chunk = await storage.getChunk(0);
+  assert.deepStrictEqual(chunk, {
+    x: 0,
+    tiles: [{ x: 6, y: 5, tile: { type: 'AIR' } }],
+  });
 });
