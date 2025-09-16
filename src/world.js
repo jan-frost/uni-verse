@@ -1,5 +1,5 @@
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
-import * as ROT from 'rot-js';
+
 
 
 export const generateChunk = async (options, storage) => {

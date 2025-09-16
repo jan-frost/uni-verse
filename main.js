@@ -109,8 +109,8 @@ const drawGame = async (gameState, display) => {
 
     const playerX = gameState.player.x;
     const playerY = gameState.player.y;
-    const currentChunkX = gameState.currentChunk.x;
-    const currentChunkY = gameState.currentChunk.y;
+    // const currentChunkX = gameState.currentChunk.x;
+    // const currentChunkY = gameState.currentChunk.y;
 
     const { startX, startY } = calculateViewport(playerX, playerY, display);
     const currentViewportWidth = display.getOptions().width;

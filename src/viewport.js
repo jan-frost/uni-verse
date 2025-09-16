@@ -1,4 +1,4 @@
-import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
+
 
 export const calculateViewport = (playerX, playerY, display) => {
   const viewportWidth = display.getOptions().width;

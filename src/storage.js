@@ -42,7 +42,7 @@ export class Storage {
    * @param {number} x
    * @returns {Promise<Chunk|null>}
    */
-  getChunk(x) {
+  getChunk(/*x*/) {
     throw new Error("Not implemented");
   }
 
@@ -53,8 +53,7 @@ export class Storage {
    * @param {any} tile
    * @returns {Promise<void>}
    */
-  saveTile(chunkX, x, y, tile) {
-    throw new Error("Not implemented");
+  saveTile(/*chunkX, x, y, tile*/) {
   }
 }
 

@@ -1,19 +1,29 @@
-module.exports = {
-    env: {
-        browser: true,
-        es2021: true
-    },
-    extends: [
-        'eslint:recommended'
-    ],
-    parserOptions: {
-        ecmaVersion: 12,
-        sourceType: 'module'
-    },
-    rules: {
-        // Add custom rules here if needed
-    },
-    globals: {
-        ROT: 'readonly' // Declare ROT as a read-only global variable
+import eslint from '@eslint/js';
+
+export default [
+    // Global configuration for all JavaScript files
+    {
+        files: ['**/*.js'], // Apply to all .js files
+        ...eslint.configs.recommended,
+        languageOptions: {
+            ecmaVersion: 2021,
+            sourceType: 'module',
+            globals: {
+                // Explicitly define browser globals
+                window: 'readonly',
+                document: 'readonly',
+                console: 'readonly',
+                setTimeout: 'readonly',
+                clearTimeout: 'readonly',
+                setInterval: 'readonly',
+                clearInterval: 'readonly',
+                URLSearchParams: 'readonly',
+                indexedDB: 'readonly',
+                ROT: 'readonly'
+            }
+        },
+        rules: {
+            'no-unused-vars': 'error'
+        }
     }
-};
+];

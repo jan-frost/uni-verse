@@ -18,7 +18,7 @@ const createMockGameState = (playerX, playerY, currentChunkX, currentChunkY, chu
 });
 
 // Helper to create a mock getTileFunction that returns [tile, gameState]
-const createMockGetTileFunction = (mockTiles, initialGameState) => (gameState, x, y) => {
+const createMockGetTileFunction = (mockTiles) => (gameState, x, y) => {
   const tileKey = `${x},${y}`;
   const tile = mockTiles[tileKey] || TILES.AIR; // Default to AIR if not specified
   return [tile, gameState]; // For tests, we assume getTile doesn't change the gameState

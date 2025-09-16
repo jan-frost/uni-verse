@@ -47,7 +47,6 @@ export const calculateVisibility = ({ tiles }) => {
   let head = 0;
   while (head < queue.length) {
     const { x, y, type } = queue[head++];
-    const index = y * CHUNK_WIDTH + x;
 
     // Only propagate from WOOD/LEAF tiles for tree visibility
     if (type === 'WOOD' || type === 'LEAF') {
