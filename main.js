@@ -232,6 +232,8 @@ document.addEventListener('keydown', (event) => {
 
 // Touch controls for mobile devices
 let touchInterval = null;
+let currentTouchX = 0;
+let currentTouchY = 0;
 
 const handleTouch = (event) => {
     event.preventDefault(); // Prevent scrolling
@@ -242,54 +244,53 @@ const handleTouch = (event) => {
         return;
     }
 
-    if (touchInterval) {
-        return; // Already moving
-    }
-
     const touch = event.touches[0];
     const rect = rotCanvas.getBoundingClientRect();
+    currentTouchX = touch.clientX - rect.left;
+    currentTouchY = touch.clientY - rect.top;
 
-    const getEventKey = () => {
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
+    if (!touchInterval) {
+        touchInterval = setInterval(move, 100);
+        move(); // Execute immediately on touchstart
+    }
+};
 
-        const canvasWidth = rotCanvas.offsetWidth;
-        const canvasHeight = rotCanvas.offsetHeight;
+const move = async () => {
+    const { player } = gameState;
+    const { startX, startY } = calculateViewport(player.x, player.y, display);
 
-        // Define touch regions (e.g., 1/4 of the canvas width/height from edges)
-        const edgeThresholdX = canvasWidth / 4;
-        const edgeThresholdY = canvasHeight / 4;
+    // Calculate player's screen position
+    const playerScreenX = player.x - startX;
+    const playerScreenY = player.y - startY;
 
-        let eventKey = '';
+    // Calculate touch offset from player's screen position
+    const offsetX = currentTouchX - playerScreenX * display.getOptions().fontSize;
+    const offsetY = currentTouchY - playerScreenY * display.getOptions().fontSize;
 
-        if (x < edgeThresholdX) {
-            eventKey = 'ArrowLeft';
-        } else if (x > canvasWidth - edgeThresholdX) {
-            eventKey = 'ArrowRight';
+    // Define dead zone (e.g., 2 tiles radius)
+    const deadZone = 2 * display.getOptions().fontSize;
+
+    let eventKey = '';
+
+    if (Math.abs(offsetX) > deadZone || Math.abs(offsetY) > deadZone) {
+        if (Math.abs(offsetX) > Math.abs(offsetY)) {
+            // Horizontal movement is dominant
+            eventKey = offsetX > 0 ? 'ArrowRight' : 'ArrowLeft';
+        } else {
+            // Vertical movement is dominant
+            eventKey = offsetY > 0 ? 'ArrowDown' : 'ArrowUp';
         }
-
-        if (y < edgeThresholdY) {
-            eventKey = 'ArrowUp';
-        } else if (y > canvasHeight - edgeThresholdY) {
-            eventKey = 'ArrowDown';
-        }
-        return eventKey;
     }
 
-    const move = async () => {
-        const eventKey = getEventKey();
-        if (eventKey) {
-            const newGameState = await movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y), storage);
-            if (newGameState !== gameState) { // Only redraw if state actually changed
-                gameState = newGameState;
-                await drawGame(gameState, display);
-            }
+    if (eventKey) {
+        const newGameState = await movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y), storage);
+        if (newGameState !== gameState) { // Only redraw if state actually changed
+            gameState = newGameState;
+            await drawGame(gameState, display);
         }
-    };
-
-    move();
-    touchInterval = setInterval(move, 200);
+    }
 };
 
 rotCanvas.addEventListener('touchstart', handleTouch, { passive: false });
+rotCanvas.addEventListener('touchmove', handleTouch, { passive: false });
 rotCanvas.addEventListener('touchend', handleTouch, { passive: false });
