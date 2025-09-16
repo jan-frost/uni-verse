@@ -88,10 +88,10 @@ export const generateChunk = async (options, storage) => {
   };
 };
 
-export const getAdjacentChunkCoordinates = (currentChunkX) => {
+export const getAdjacentChunkCoordinates = (currentChunkX, currentChunkY) => {
   return [
-    { chunkX: currentChunkX - 1 }, // Left chunk
-    { chunkX: currentChunkX + 1 }, // Right chunk
+    { chunkX: currentChunkX - 1, chunkY: currentChunkY }, // Left chunk
+    { chunkX: currentChunkX + 1, chunkY: currentChunkY }, // Right chunk
   ];
 };
 
