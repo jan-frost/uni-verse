@@ -1,3 +1,4 @@
+// This is a test comment to trigger the pre-commit hook.
 import { movePlayer } from './src/player-movement.js';
 import { generateChunk, manageChunkMemory } from './src/world.js';
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
