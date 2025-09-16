@@ -1,3 +1,13 @@
+import { createInitialState } from './src/game-state.js';
+import * as ROT from 'rot-js'; // Import the entire 'rot-js' library
+import { BrowserStorage } from './src/browser-storage.js';
+import { generateChunk } from './src/world.js';
+import { TILES } from './src/tiles.js';
+import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
+import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
+import { calculateVisibility } from './src/visibility.js';
+import { movePlayer } from './src/player-movement.js';
+
 const urlParams = new URLSearchParams(window.location.search);
 const isDebugMode = urlParams.has('debug');
 
@@ -36,6 +46,7 @@ const display = new ROT.Display({
 adjustDisplayForZoom(display); // Apply initial zoom, sets width/height
 
 // Append the display's container to the canvas element
+const canvas = document.getElementById('gameCanvas');
 const rotCanvas = display.getContainer();
 rotCanvas.style.border = '2px solid white';
 rotCanvas.style.boxSizing = 'border-box'; // Include padding and border in the element's total width and height.
