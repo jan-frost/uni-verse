@@ -40,8 +40,9 @@ export const movePlayer = async (currentGameState, eventKey, getTileFunction, st
     } else if (targetTile) {
         // Collided with a non-walkable tile, so dig it.
         const chunkX = Math.floor(newPlayerX / CHUNK_WIDTH);
-        const x = newPlayerX % CHUNK_WIDTH;
-        await storage.saveTile(chunkX, x, newPlayerY, { type: 'AIR' });
+        const x = ((newPlayerX % CHUNK_WIDTH) + CHUNK_WIDTH) % CHUNK_WIDTH;
+        const y = ((newPlayerY % CHUNK_HEIGHT) + CHUNK_HEIGHT) % CHUNK_HEIGHT;
+        await storage.saveTile(chunkX, x, y, { type: 'AIR' });
     }
 
     // Clamp playerY to world boundaries

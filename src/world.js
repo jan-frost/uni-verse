@@ -7,16 +7,16 @@ export const generateChunk = async (options, storage) => {
   const chunkHeight = options.height || CHUNK_HEIGHT;
   const tiles = new Array(chunkWidth * chunkHeight).fill(null);
 
-  const { chunkX, chunkY, worldNoise, worldCaveNoise } = options;
+  const { chunkX, worldNoise, worldCaveNoise } = options;
 
-  console.log(`Generating chunk: chunkX=${chunkX}, chunkY=${chunkY}`);
+  console.log(`Generating chunk: chunkX=${chunkX}`);
 
   for (let x = 0; x < chunkWidth; x++) {
     const worldX = chunkX * CHUNK_WIDTH + x; // Calculate world X coordinate
 
     const height = Math.floor(worldNoise.get(worldX / 10, 0) * (chunkHeight * 0.2)) + (chunkHeight / 2);
     for (let y = 0; y < chunkHeight; y++) {
-      const worldY = chunkY * CHUNK_HEIGHT + y; // Calculate world Y coordinate
+      const worldY = y; // Calculate world Y coordinate
 
       const index = y * chunkWidth + x;
 
@@ -40,7 +40,7 @@ export const generateChunk = async (options, storage) => {
   for (let x = 0; x < chunkWidth; x++) {
     const worldX = chunkX * CHUNK_WIDTH + x; // Calculate world X coordinate for tree placement
     for (let y = 0; y < chunkHeight; y++) {
-      const worldY = chunkY * CHUNK_HEIGHT + y; // Calculate world Y coordinate for tree placement
+      const worldY = y; // Calculate world Y coordinate for tree placement
 
       const index = y * chunkWidth + x;
       const tile = tiles[index];
@@ -88,10 +88,10 @@ export const generateChunk = async (options, storage) => {
   };
 };
 
-export const getAdjacentChunkCoordinates = (currentChunkX, currentChunkY) => {
+export const getAdjacentChunkCoordinates = (currentChunkX) => {
   return [
-    { chunkX: currentChunkX - 1, chunkY: currentChunkY }, // Left chunk
-    { chunkX: currentChunkX + 1, chunkY: currentChunkY }, // Right chunk
+    { chunkX: currentChunkX - 1 }, // Left chunk
+    { chunkX: currentChunkX + 1 }, // Right chunk
   ];
 };
 
@@ -100,11 +100,11 @@ export const manageChunkMemory = async (currentGameState, storage) => {
   const chunksToKeep = new Set();
 
   // Current chunk
-  chunksToKeep.add(`${currentChunk.x},${currentChunk.y}`);
+  chunksToKeep.add(`${currentChunk.x},0`);
   // Left adjacent chunk
-  chunksToKeep.add(`${currentChunk.x - 1},${currentChunk.y}`);
+  chunksToKeep.add(`${currentChunk.x - 1},0`);
   // Right adjacent chunk
-  chunksToKeep.add(`${currentChunk.x + 1},${currentChunk.y}`);
+  chunksToKeep.add(`${currentChunk.x + 1},0`);
 
   let newChunks = new Map(chunks);
 
@@ -117,17 +117,16 @@ export const manageChunkMemory = async (currentGameState, storage) => {
 
   // Ensure current and adjacent chunks are loaded (generate if not present)
   const chunksToGenerate = [
-    { chunkX: currentChunk.x, chunkY: currentChunk.y },
-    { chunkX: currentChunk.x - 1, chunkY: currentChunk.y },
-    { chunkX: currentChunk.x + 1, chunkY: currentChunk.y },
+    { chunkX: currentChunk.x },
+    { chunkX: currentChunk.x - 1 },
+    { chunkX: currentChunk.x + 1 },
   ];
 
-  for (const { chunkX, chunkY } of chunksToGenerate) {
-    const chunkKey = `${chunkX},${chunkY}`;
+  for (const { chunkX } of chunksToGenerate) {
+    const chunkKey = `${chunkX},0`;
     if (!newChunks.has(chunkKey)) {
       const newChunk = await generateChunk({
         chunkX,
-        chunkY,
         worldNoise: noise.worldNoise,
         worldCaveNoise: noise.worldCaveNoise,
       }, storage);

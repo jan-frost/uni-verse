@@ -65,6 +65,7 @@ export class BrowserStorage extends Storage {
       const request = store.put(chunk);
 
       request.onsuccess = () => {
+        this.events.emit("tile-changed", { chunkX, x, y, tile });
         resolve();
       };
 

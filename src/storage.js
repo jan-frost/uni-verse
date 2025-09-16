@@ -1,3 +1,22 @@
+export class EventEmitter {
+  constructor() {
+    this.listeners = {};
+  }
+
+  on(eventName, listener) {
+    if (!this.listeners[eventName]) {
+      this.listeners[eventName] = [];
+    }
+    this.listeners[eventName].push(listener);
+  }
+
+  emit(eventName, ...args) {
+    if (this.listeners[eventName]) {
+      this.listeners[eventName].forEach(listener => listener(...args));
+    }
+  }
+}
+
 /**
  * @typedef {object} Tile
  * @property {number} x
@@ -15,6 +34,10 @@
  * @interface
  */
 export class Storage {
+  constructor() {
+    this.events = new EventEmitter();
+  }
+
   /**
    * @param {number} x
    * @returns {Promise<Chunk|null>}
@@ -70,5 +93,6 @@ export class FakeStorage extends Storage {
     } else {
       chunk.tiles.push({ x, y, tile });
     }
+    this.events.emit("tile-changed", { chunkX, x, y, tile });
   }
 }
