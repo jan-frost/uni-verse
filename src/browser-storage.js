@@ -1,12 +1,12 @@
 import { Storage } from './storage.js';
 
-const DB_NAME = 'uni-verse';
+const DB_NAME_PREFIX = 'uni-verse-';
 const DB_VERSION = 1;
 const CHUNK_STORE_NAME = 'chunks';
 
-function openDB() {
+function openDB(seed) {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(`${DB_NAME_PREFIX}${seed}`, DB_VERSION);
 
     request.onupgradeneeded = (event) => {
       const db = event.target.result;
@@ -26,9 +26,9 @@ function openDB() {
 }
 
 export class BrowserStorage extends Storage {
-  constructor() {
+  constructor(seed) {
     super();
-    this.dbPromise = openDB();
+    this.dbPromise = openDB(seed);
   }
 
   async getChunk(x) {

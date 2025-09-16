@@ -1,14 +1,12 @@
-// This is a test comment to trigger the pre-commit hook.
-import { movePlayer } from './src/player-movement.js';
-import { generateChunk, manageChunkMemory } from './src/world.js';
-import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
-import { TILES } from './src/tiles.js';
-import { calculateVisibility } from './src/visibility.js';
-import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
-import { createInitialState } from './src/game-state.js';
-import { BrowserStorage } from './src/browser-storage.js';
+const urlParams = new URLSearchParams(window.location.search);
+const isDebugMode = urlParams.has('debug');
 
-const storage = new BrowserStorage();
+// Initialize game state
+let gameState = createInitialState(urlParams);
+
+console.log(`Initial WORLD_SEED (from gameState): ${gameState.seed}`);
+
+const storage = new BrowserStorage(gameState.seed);
 
 storage.events.on("tile-changed", async (data) => {
   console.log("tile-changed event received", data);
@@ -27,18 +25,6 @@ storage.events.on("tile-changed", async (data) => {
 });
 
 console.log("main.js loaded");
-import * as ROT from 'rot-js';
-
-const canvas = document.getElementById('gameCanvas');
-
-// Parse URL query parameters
-const urlParams = new URLSearchParams(window.location.search);
-const isDebugMode = urlParams.has('debug');
-
-// Initialize game state
-let gameState = createInitialState(urlParams);
-
-console.log(`Initial WORLD_SEED (from gameState): ${gameState.seed}`);
 
 // Initialize ROT.Display
 const display = new ROT.Display({

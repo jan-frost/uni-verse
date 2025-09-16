@@ -3,16 +3,18 @@ import assert from 'node:assert';
 import { BrowserStorage } from './browser-storage.js';
 import 'fake-indexeddb/auto';
 
+const TEST_SEED = 999;
+
 beforeEach(async () => {
   await new Promise((resolve, reject) => {
-    const req = indexedDB.deleteDatabase('uni-verse');
+    const req = indexedDB.deleteDatabase(`uni-verse-${TEST_SEED}`);
     req.onsuccess = resolve;
     req.onerror = reject;
   });
 });
 
 test('can save and retrieve a tile', async () => {
-  const storage = new BrowserStorage();
+  const storage = new BrowserStorage(TEST_SEED);
   await storage.saveTile(1, 10, 20, { id: 'grass' });
   const chunk = await storage.getChunk(1);
   assert.deepStrictEqual(chunk, {
@@ -23,7 +25,7 @@ test('can save and retrieve a tile', async () => {
 });
 
 test('can save multiple tiles in the same chunk', async () => {
-  const storage = new BrowserStorage();
+  const storage = new BrowserStorage(TEST_SEED);
   await storage.saveTile(1, 10, 20, { id: 'grass' });
   await storage.saveTile(1, 11, 21, { id: 'dirt' });
   const chunk = await storage.getChunk(1);
@@ -38,7 +40,7 @@ test('can save multiple tiles in the same chunk', async () => {
 });
 
 test('can update a tile', async () => {
-  const storage = new BrowserStorage();
+  const storage = new BrowserStorage(TEST_SEED);
   await storage.saveTile(1, 10, 20, { id: 'grass' });
   await storage.saveTile(1, 10, 20, { id: 'dirt' });
   const chunk = await storage.getChunk(1);
@@ -50,7 +52,7 @@ test('can update a tile', async () => {
 });
 
 test('can handle negative chunk indexes', async () => {
-  const storage = new BrowserStorage();
+  const storage = new BrowserStorage(TEST_SEED);
   await storage.saveTile(-1, 10, 20, { id: 'grass' });
   const chunk = await storage.getChunk(-1);
   assert.deepStrictEqual(chunk, {
@@ -61,7 +63,7 @@ test('can handle negative chunk indexes', async () => {
 });
 
 test('returns null for a chunk that does not exist', async () => {
-  const storage = new BrowserStorage();
+  const storage = new BrowserStorage(TEST_SEED);
   const chunk = await storage.getChunk(1);
   assert.strictEqual(chunk, null);
   await storage.dbPromise.then(db => db.close());
