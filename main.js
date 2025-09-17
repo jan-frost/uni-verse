@@ -7,34 +7,21 @@ import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
 import { calculateVisibility } from './src/visibility.js';
 import { movePlayer } from './src/player-movement.js';
+import { toggleInventory, updateInventory } from './src/inventory.js';
 
 const urlParams = new URLSearchParams(window.location.search);
 const isDebugMode = urlParams.has('debug');
 
-// Initialize game state
-let gameState = createInitialState(urlParams);
+function generatePlayerName() {
+    const adjectives = ['Cyber', 'Giga', 'Nano', 'Data', 'Net', 'Zero', 'Omega'];
+    const nouns = ['Runner', 'Jacker', 'Glitch', 'Node', 'Byte', 'Ware', 'Core'];
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const number = Math.floor(Math.random() * 9000) + 1000;
+    return `${adjective}${noun}${number}`;
+}
 
-console.log(`Initial WORLD_SEED (from gameState): ${gameState.seed}`);
-
-const storage = new BrowserStorage(gameState.seed);
-
-storage.events.on("tile-changed", async (data) => {
-  console.log("tile-changed event received", data);
-  const { chunkX, x, y, tile } = data;
-  const chunkKey = `${chunkX},0`;
-  const chunk = gameState.chunks.get(chunkKey);
-  if (chunk) {
-    const index = y * CHUNK_WIDTH + x;
-    if (index >= 0 && index < chunk.tiles.length) {
-      chunk.tiles[index] = tile;
-    }
-    const newChunks = new Map(gameState.chunks).set(chunkKey, chunk);
-    gameState = { ...gameState, chunks: newChunks };
-    await drawGame(gameState, display);
-  }
-});
-
-console.log("main.js loaded");
+const playerName = urlParams.get('playerName') || generatePlayerName();
 
 // Initialize ROT.Display
 const display = new ROT.Display({
@@ -66,12 +53,9 @@ if (isDebugMode) {
     rotCanvas.parentNode.appendChild(debugOutputElement);
 }
 
-// Player position (for now, fixed at center of chunk)
-gameState.player.x = (gameState.currentChunk.x * CHUNK_WIDTH) + Math.floor(display.getOptions().width / 2);
-gameState.player.y = Math.floor(CHUNK_HEIGHT / 2);
 
 // Function to get or generate a chunk
-const getChunk = async (currentGameState, chunkX) => {
+const getChunk = async (currentGameState, chunkX, storage) => {
     const chunkKey = `${chunkX},0`;
     if (currentGameState.chunks.has(chunkKey)) {
         return [currentGameState.chunks.get(chunkKey), currentGameState];
@@ -87,9 +71,9 @@ const getChunk = async (currentGameState, chunkX) => {
     return [newChunk, newGameState];
 };
 
-const getTile = async (currentGameState, worldX, worldY) => {
+const getTile = async (currentGameState, worldX, worldY, storage) => {
     const chunkX = Math.floor(worldX / CHUNK_WIDTH);
-    let [chunk, updatedGameState] = await getChunk(currentGameState, chunkX); // getChunk now returns [chunk, newGameState]
+    let [chunk, updatedGameState] = await getChunk(currentGameState, chunkX, storage); // getChunk now returns [chunk, newGameState]
 
     const localX = (worldX % CHUNK_WIDTH + CHUNK_WIDTH) % CHUNK_WIDTH;
     const localY = (worldY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
@@ -104,7 +88,7 @@ const getTile = async (currentGameState, worldX, worldY) => {
 };
 
 // Function to draw the game state
-const drawGame = async (gameState, display) => {
+const drawGame = async (gameState, display, storage) => {
     display.clear(); // Clear the display before redrawing
 
     const playerX = gameState.player.x;
@@ -124,7 +108,7 @@ const drawGame = async (gameState, display) => {
     const centerChunkX = Math.floor(centerViewportWorldX / CHUNK_WIDTH);
 
     // Get the chunk containing the center tile
-    let [centerChunk, updatedGameState1] = await getChunk(gameState, centerChunkX);
+    let [centerChunk, updatedGameState1] = await getChunk(gameState, centerChunkX, storage);
     gameState = updatedGameState1;
 
     // Calculate local coordinates within the center chunk
@@ -149,7 +133,7 @@ const drawGame = async (gameState, display) => {
     const lastVisibleChunkX = Math.floor((startX + currentViewportWidth - 1) / CHUNK_WIDTH);
 
     for (let chunkX = firstVisibleChunkX; chunkX <= lastVisibleChunkX; chunkX++) {
-        let [chunk, updatedGameState2] = await getChunk(gameState, chunkX);
+        let [chunk, updatedGameState2] = await getChunk(gameState, chunkX, storage);
         gameState = updatedGameState2;
         // For now, we'll assume visibility is calculated per chunk.
         // In a more advanced system, visibility would be global or per-viewport.
@@ -203,92 +187,102 @@ const drawGame = async (gameState, display) => {
     }
 };
 
-// Initial draw
-(async () => {
-    await drawGame(gameState, display);
-})();
+async function main() {
+    const storage = new BrowserStorage(urlParams.get('seed'));
+    const inventory = await storage.getInventory(playerName) || {};
+    let gameState = createInitialState(urlParams, playerName, inventory);
 
-// Handle window resizing
-window.addEventListener('resize', () => {
-    adjustDisplayForZoom(display);
-    drawGame(gameState, display);
-});
+    storage.events.on("tile-changed", async (data) => {
+        console.log("tile-changed event received", data);
+        const { chunkX, x, y, tile } = data;
+        const chunkKey = `${chunkX},0`;
+        const chunk = gameState.chunks.get(chunkKey);
+        if (chunk) {
+            const index = y * CHUNK_WIDTH + x;
+            if (index >= 0 && index < chunk.tiles.length) {
+                chunk.tiles[index] = tile;
+            }
+            const newChunks = new Map(gameState.chunks).set(chunkKey, chunk);
+            gameState = { ...gameState, chunks: newChunks };
+            await drawGame(gameState, display, storage);
+        }
+    });
 
-// Handle player movement
-document.addEventListener('keydown', (event) => {
-    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
-        console.log(`Keydown event triggered: ${event.key}`);
-        (async () => {
-            const newGameState = await movePlayer(gameState, event.key, (state, x, y) => getTile(state, x, y), storage);
+    console.log("main.js loaded");
+
+    // Player position (for now, fixed at center of chunk)
+    gameState.player.x = (gameState.currentChunk.x * CHUNK_WIDTH) + Math.floor(display.getOptions().width / 2);
+    gameState.player.y = Math.floor(CHUNK_HEIGHT / 2);
+
+    // Initial draw
+    await drawGame(gameState, display, storage);
+
+    // Handle window resizing
+    window.addEventListener('resize', () => {
+        adjustDisplayForZoom(display);
+        drawGame(gameState, display, storage);
+    });
+
+    // Handle player movement
+    document.addEventListener('keydown', (event) => {
+        if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+            console.log(`Keydown event triggered: ${event.key}`);
+            (async () => {
+                const newGameState = await movePlayer(gameState, event.key, (state, x, y) => getTile(state, x, y, storage), storage);
+                if (newGameState !== gameState) { // Only redraw if state actually changed
+                    gameState = newGameState;
+                    await drawGame(gameState, display, storage);
+                }
+            })();
+        }
+    });
+
+    // Touch controls for mobile devices
+    const handleTouch = async (event) => {
+        event.preventDefault();
+        const touch = event.changedTouches[0];
+        const rect = rotCanvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        const thirdWidth = rect.width / 3;
+        const thirdHeight = rect.height / 3;
+
+        let eventKey = null;
+
+        if (y < thirdHeight) {
+            // Top row
+            if (x > thirdWidth && x < 2 * thirdWidth) {
+                eventKey = 'ArrowUp';
+            }
+        } else if (y > 2 * thirdHeight) {
+            // Bottom row
+            if (x > thirdWidth && x < 2 * thirdWidth) {
+                eventKey = 'ArrowDown';
+            }
+        } else {
+            // Middle row
+            if (x < thirdWidth) {
+                eventKey = 'ArrowLeft';
+            } else if (x > 2 * thirdWidth) {
+                eventKey = 'ArrowRight';
+            } else {
+                // Center
+                toggleInventory(gameState);
+            }
+        }
+
+        if (eventKey) {
+            const newGameState = await movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y, storage), storage);
             if (newGameState !== gameState) { // Only redraw if state actually changed
                 gameState = newGameState;
-                await drawGame(gameState, display);
+                await drawGame(gameState, display, storage);
             }
-        })();
-    }
-});
-
-// Touch controls for mobile devices
-let touchInterval = null;
-let currentTouchX = 0;
-let currentTouchY = 0;
-
-const handleTouch = (event) => {
-    event.preventDefault(); // Prevent scrolling
-
-    if (event.type === 'touchend') {
-        clearInterval(touchInterval);
-        touchInterval = null;
-        return;
-    }
-
-    const touch = event.touches[0];
-    const rect = rotCanvas.getBoundingClientRect();
-    currentTouchX = touch.clientX - rect.left;
-    currentTouchY = touch.clientY - rect.top;
-
-    if (!touchInterval) {
-        touchInterval = setInterval(move, 100);
-        move(); // Execute immediately on touchstart
-    }
-};
-
-const move = async () => {
-    const { player } = gameState;
-    const { startX, startY } = calculateViewport(player.x, player.y, display);
-
-    // Calculate player's screen position
-    const playerScreenX = player.x - startX;
-    const playerScreenY = player.y - startY;
-
-    // Calculate touch offset from player's screen position
-    const offsetX = currentTouchX - playerScreenX * display.getOptions().fontSize;
-    const offsetY = currentTouchY - playerScreenY * display.getOptions().fontSize;
-
-    // Define dead zone (e.g., 2 tiles radius)
-    const deadZone = 2 * display.getOptions().fontSize;
-
-    let eventKey = '';
-
-    if (Math.abs(offsetX) > deadZone || Math.abs(offsetY) > deadZone) {
-        if (Math.abs(offsetX) > Math.abs(offsetY)) {
-            // Horizontal movement is dominant
-            eventKey = offsetX > 0 ? 'ArrowRight' : 'ArrowLeft';
-        } else {
-            // Vertical movement is dominant
-            eventKey = offsetY > 0 ? 'ArrowDown' : 'ArrowUp';
         }
-    }
+    };
 
-    if (eventKey) {
-        const newGameState = await movePlayer(gameState, eventKey, (state, x, y) => getTile(state, x, y), storage);
-        if (newGameState !== gameState) { // Only redraw if state actually changed
-            gameState = newGameState;
-            await drawGame(gameState, display);
-        }
-    }
-};
+    rotCanvas.addEventListener('touchend', handleTouch, { passive: false });
 
-rotCanvas.addEventListener('touchstart', handleTouch, { passive: false });
-rotCanvas.addEventListener('touchmove', handleTouch, { passive: false });
-rotCanvas.addEventListener('touchend', handleTouch, { passive: false });
+}
+
+main();

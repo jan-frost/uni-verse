@@ -1,5 +1,6 @@
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
 import { manageChunkMemory } from './world.js';
+import { updateInventory } from './inventory.js';
 
 /**
  * Calculates the new game state after a player movement.
@@ -39,13 +40,22 @@ export const movePlayer = async (currentGameState, eventKey, getTileFunction, st
         finalPlayer = { x: newPlayerX, y: newPlayerY };
     } else if (targetTile) {
         // Collided with a non-walkable tile, so dig it.
+        const dugTileType = targetTile.type;
+        const newInventory = { ...currentGameState.inventory };
+        newInventory[dugTileType] = (newInventory[dugTileType] || 0) + 1;
+
+        await storage.saveInventory(currentGameState.playerName, newInventory);
+
         const chunkX = Math.floor(newPlayerX / CHUNK_WIDTH);
         const x = ((newPlayerX % CHUNK_WIDTH) + CHUNK_WIDTH) % CHUNK_WIDTH;
         const y = ((newPlayerY % CHUNK_HEIGHT) + CHUNK_HEIGHT) % CHUNK_HEIGHT;
         await storage.saveTile(chunkX, x, y, { type: 'AIR' });
-    }
 
-    // Clamp playerY to world boundaries
+        // Update the game state with the new inventory
+        tempGameState = { ...tempGameState, inventory: newInventory };
+
+        updateInventory(tempGameState);
+    }
     finalPlayer = { ...finalPlayer, y: Math.max(0, Math.min(finalPlayer.y, CHUNK_HEIGHT - 1)) };
 
     // Update currentChunkX based on playerX

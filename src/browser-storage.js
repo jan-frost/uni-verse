@@ -3,6 +3,7 @@ import { Storage } from './storage.js';
 const DB_NAME_PREFIX = 'uni-verse-';
 const DB_VERSION = 1;
 const CHUNK_STORE_NAME = 'chunks';
+const INVENTORY_STORE_NAME = 'inventories';
 
 function openDB(seed) {
   return new Promise((resolve, reject) => {
@@ -12,6 +13,9 @@ function openDB(seed) {
       const db = event.target.result;
       if (!db.objectStoreNames.contains(CHUNK_STORE_NAME)) {
         db.createObjectStore(CHUNK_STORE_NAME, { keyPath: 'x' });
+      }
+      if (!db.objectStoreNames.contains(INVENTORY_STORE_NAME)) {
+        db.createObjectStore(INVENTORY_STORE_NAME, { keyPath: 'playerName' });
       }
     };
 
@@ -66,6 +70,40 @@ export class BrowserStorage extends Storage {
 
       request.onsuccess = () => {
         this.events.emit("tile-changed", { chunkX, x, y, tile });
+        resolve();
+      };
+
+      request.onerror = (event) => {
+        reject(event.target.error);
+      };
+    });
+  }
+
+  async getInventory(playerName) {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(INVENTORY_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(INVENTORY_STORE_NAME);
+      const request = store.get(playerName);
+
+      request.onsuccess = (event) => {
+        resolve(event.target.result ? event.target.result.inventory : null);
+      };
+
+      request.onerror = (event) => {
+        reject(event.target.error);
+      };
+    });
+  }
+
+  async saveInventory(playerName, inventory) {
+    const db = await this.dbPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(INVENTORY_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(INVENTORY_STORE_NAME);
+      const request = store.put({ playerName, inventory });
+
+      request.onsuccess = () => {
         resolve();
       };
 
