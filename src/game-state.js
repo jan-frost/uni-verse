@@ -5,6 +5,8 @@ import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
  * Represents the immutable state of the game.
  * @typedef {Object} GameState
  * @property {number} seed - The world generation seed.
+ * @property {string} playerName - The player's name.
+ * @property {object} inventory - The player's inventory.
  * @property {{x: number, y: number}} player - The player's world coordinates.
  * @property {{x: number, y: number}} currentChunk - The chunk coordinates the player is currently in.
  * @property {Map<string, Object>} chunks - A map of loaded chunks, keyed by "chunkX,chunkY".
@@ -18,7 +20,7 @@ import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
  * @param {URLSearchParams} urlParams - URL parameters for initial state.
  * @returns {GameState} The initial immutable game state.
  */
-export function createInitialState(urlParams) {
+export function createInitialState(urlParams, playerName, inventory) {
     let seed = urlParams.has('seed') ? parseInt(urlParams.get('seed')) : Date.now();
     seed = (seed % 65536) + 1; // Ensure seed is within range and not 0
 
@@ -37,6 +39,8 @@ export function createInitialState(urlParams) {
 
     return {
         seed,
+        playerName,
+        inventory,
         player: { x: initialPlayerX, y: initialPlayerY },
         currentChunk: { x: initialChunkX, y: initialChunkY },
         chunks: new Map(),

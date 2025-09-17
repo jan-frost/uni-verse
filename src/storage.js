@@ -55,6 +55,23 @@ export class Storage {
    */
   saveTile(/*chunkX, x, y, tile*/) {
   }
+
+  /**
+   * @param {string} playerName
+   * @returns {Promise<object|null>}
+   */
+  getInventory(/*playerName*/) {
+    throw new Error("Not implemented");
+  }
+
+  /**
+   * @param {string} playerName
+   * @param {object} inventory
+   * @returns {Promise<void>}
+   */
+  saveInventory(/*playerName, inventory*/) {
+    throw new Error("Not implemented");
+  }
 }
 
 export class FakeStorage extends Storage {
@@ -62,6 +79,8 @@ export class FakeStorage extends Storage {
     super();
     /** @type {Map<number, Chunk>} */
     this.chunks = new Map();
+    /** @type {Map<string, object>} */
+    this.inventories = new Map();
   }
 
   /**
@@ -93,5 +112,22 @@ export class FakeStorage extends Storage {
       chunk.tiles.push({ x, y, tile });
     }
     this.events.emit("tile-changed", { chunkX, x, y, tile });
+  }
+
+  /**
+   * @param {string} playerName
+   * @returns {Promise<object|null>}
+   */
+  async getInventory(playerName) {
+    return this.inventories.get(playerName) || null;
+  }
+
+  /**
+   * @param {string} playerName
+   * @param {object} inventory
+   * @returns {Promise<void>}
+   */
+  async saveInventory(playerName, inventory) {
+    this.inventories.set(playerName, inventory);
   }
 }
