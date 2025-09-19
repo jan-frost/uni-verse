@@ -1,7 +1,16 @@
 import { TILES } from './tiles.js';
 
-let inventoryElement = null;
-let isInventoryOpen = false;
+export let inventoryElement = null;
+export let isInventoryOpen = false;
+
+export function __test__resetInventory() {
+    inventoryElement = null;
+    isInventoryOpen = false;
+    const inventoryDiv = document.querySelector('div');
+    if (inventoryDiv) {
+        inventoryDiv.remove();
+    }
+}
 
 function createInventoryElement() {
     const element = document.createElement('div');
@@ -56,5 +65,16 @@ export function updateInventory(gameState) {
     }
 
     inventoryElement.innerHTML = content;
+}
+
+export function closeInventory() {
+    if (inventoryElement) {
+        inventoryElement.style.display = 'none';
+    }
+    isInventoryOpen = false;
+}
+
+export function getIsInventoryOpen() {
+    return isInventoryOpen;
 }
 

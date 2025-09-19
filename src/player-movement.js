@@ -1,6 +1,6 @@
 import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
 import { manageChunkMemory } from './world.js';
-import { updateInventory } from './inventory.js';
+import { updateInventory, closeInventory } from './inventory.js';
 
 /**
  * Calculates the new game state after a player movement.
@@ -10,6 +10,7 @@ import { updateInventory } from './inventory.js';
  * @returns {GameState} A new immutable game state after the movement.
  */
 export const movePlayer = async (currentGameState, eventKey, getTileFunction, storage) => {
+    closeInventory();
     let { player, currentChunk } = currentGameState;
     let newPlayerX = player.x;
     let newPlayerY = player.y;
