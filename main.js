@@ -7,7 +7,7 @@ import { CHUNK_WIDTH, CHUNK_HEIGHT } from './src/config.js';
 import { calculateViewport, adjustDisplayForZoom } from './src/viewport.js';
 import { calculateVisibility } from './src/visibility.js';
 import { movePlayer } from './src/player-movement.js';
-import { toggleInventory, updateInventory } from './src/inventory.js';
+import { toggleInventory } from './src/inventory.js';
 
 const urlParams = new URLSearchParams(window.location.search);
 const isDebugMode = urlParams.has('debug');

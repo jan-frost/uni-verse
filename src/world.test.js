@@ -21,16 +21,19 @@ const createMockGameStateForWorld = (currentChunkX, currentChunkY, chunks = new 
   noise: { worldNoise, worldCaveNoise },
 });
 
-test('World Generation', async () => {
-  ROT.RNG.setSeed(WORLD_TEST_SEED); // Reset RNG for consistent world generation tests
-  test('should return a chunk with correct dimensions', async () => {
+test('World Generation', async (t) => {
+  t.beforeEach(() => {
+    ROT.RNG.setSeed(WORLD_TEST_SEED); // Reset RNG for consistent world generation tests
+  });
+
+  await t.test('should return a chunk with correct dimensions', async () => {
     const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
     assert.ok(chunk.tiles, 'chunk should have a tiles property');
     assert.ok(Array.isArray(chunk.tiles), 'chunk.tiles should be an array');
     assert.strictEqual(chunk.tiles.length, 8 * 8, 'chunk.tiles should have the correct size');
   });
 
-  test('should generate varied elevation using noise', async () => {
+  await t.test('should generate varied elevation using noise', async () => {
     const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
 
     const hasAir = chunk.tiles.some(tile => tile && tile.type === 'AIR');
@@ -39,7 +42,7 @@ test('World Generation', async () => {
     assert.ok(hasGround, 'should have some GROUND tiles');
   });
 
-  test('should generate caves within ground areas', async () => {
+  await t.test('should generate caves within ground areas', async () => {
     const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
 
     const hasCaveAir = chunk.tiles.some((tile, index) => {
@@ -49,7 +52,7 @@ test('World Generation', async () => {
     assert.ok(hasCaveAir, 'should have some AIR tiles within ground areas (caves)');
   });
 
-  test('should place structures like trees on the surface', async () => {
+  await t.test('should place structures like trees on the surface', async () => {
     const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 32, height: 32, worldNoise, worldCaveNoise }, storage);
 
     const woodTiles = chunk.tiles.filter(tile => tile && tile.type === 'WOOD');

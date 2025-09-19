@@ -1,7 +1,7 @@
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { toggleInventory, updateInventory, closeInventory, getIsInventoryOpen, __test__resetInventory } from './inventory.js';
+import { toggleInventory, updateInventory, getIsInventoryOpen, __test__resetInventory } from './inventory.js';
 import { movePlayer } from './player-movement.js';
 import { TILES } from './tiles.js';
 import { FakeStorage } from './storage.js';
