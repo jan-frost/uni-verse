@@ -39,7 +39,7 @@ test('World Generation', async (t) => {
     const hasAir = chunk.tiles.some(tile => tile && tile.type === 'AIR');
     const hasGround = chunk.tiles.some(tile => tile && tile.type === 'GROUND');
     assert.ok(hasAir, 'should have some AIR tiles');
-    assert.ok(hasGround, 'should have some GROUND tiles');
+    assert.ok(hasGround, `should have some GROUND tiles. Chunk tiles: ${JSON.stringify(chunk.tiles)}`);
   });
 
   await t.test('should generate caves within ground areas', async () => {
