@@ -34,7 +34,7 @@ test('World Generation', async (t) => {
   });
 
   await t.test('should generate varied elevation using noise', async () => {
-    const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 8, height: 8, worldNoise, worldCaveNoise }, storage);
+    const chunk = await generateChunk({ chunkX: 0, chunkY: 0, width: 16, height: 16, worldNoise, worldCaveNoise }, storage);
 
     const hasAir = chunk.tiles.some(tile => tile && tile.type === 'AIR');
     const hasGround = chunk.tiles.some(tile => tile && tile.type === 'GROUND');
