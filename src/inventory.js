@@ -29,7 +29,7 @@ function createInventoryElement() {
     return element;
 }
 
-export function toggleInventory(gameState) {
+export function toggleInventory(gameState, selectItemCallback) {
     if (!inventoryElement) {
         inventoryElement = createInventoryElement();
     }
@@ -38,11 +38,11 @@ export function toggleInventory(gameState) {
     inventoryElement.style.display = isInventoryOpen ? 'block' : 'none';
 
     if (isInventoryOpen) {
-        updateInventory(gameState);
+        updateInventory(gameState, selectItemCallback);
     }
 }
 
-export function updateInventory(gameState) {
+export function updateInventory(gameState, selectItemCallback) {
     if (!inventoryElement || !isInventoryOpen) {
         return;
     }
@@ -58,13 +58,21 @@ export function updateInventory(gameState) {
             const tileInfo = TILES[tileType];
             const count = inventory[tileType];
             if (tileInfo) {
-                content += `<li><span style="color: ${tileInfo.fg}; background-color: ${tileInfo.bg};">${tileInfo.symbol}</span> ${tileType}: ${count}</li>`;
+                content += `<li><button class="inventory-item" data-tile-type="${tileType}"><span style="color: ${tileInfo.fg}; background-color: ${tileInfo.bg};">${tileInfo.symbol}</span> ${tileType}: ${count}</button></li>`;
             }
         }
         content += '</ul>';
     }
 
     inventoryElement.innerHTML = content;
+
+    inventoryElement.querySelectorAll('.inventory-item').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const tileType = event.currentTarget.dataset.tileType;
+            selectItemCallback(tileType);
+            closeInventory();
+        });
+    });
 }
 
 export function closeInventory() {

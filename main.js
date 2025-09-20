@@ -182,6 +182,14 @@ const drawGame = async (gameState, display, storage) => {
         }
     }
 
+    // Draw the selected item
+    if (gameState.selectedItem) {
+        const selectedTileInfo = TILES[gameState.selectedItem];
+        if (selectedTileInfo) {
+            display.draw(16, 0, selectedTileInfo.symbol, selectedTileInfo.fg, selectedTileInfo.bg);
+        }
+    }
+
     if (isDebugMode && debugOutputElement) {
         debugOutputElement.textContent = `Player: (${gameState.player.x}, ${gameState.player.y}) | Chunk: (${gameState.currentChunk.x}, ${gameState.currentChunk.y})`;
     }
@@ -234,6 +242,8 @@ async function main() {
                     await drawGame(gameState, display, storage);
                 }
             })();
+        } else if (event.key === 'i') {
+            toggleInventory(gameState, selectItem);
         }
     });
 
@@ -254,6 +264,9 @@ async function main() {
             // Top row
             if (x > thirdWidth && x < 2 * thirdWidth) {
                 eventKey = 'ArrowUp';
+            } else if (x >= 2 * thirdWidth) {
+                placeSelectedItem();
+                return;
             }
         } else if (y > 2 * thirdHeight) {
             // Bottom row
@@ -268,7 +281,7 @@ async function main() {
                 eventKey = 'ArrowRight';
             } else {
                 // Center
-                toggleInventory(gameState);
+                toggleInventory(gameState, selectItem);
             }
         }
 
@@ -282,6 +295,48 @@ async function main() {
     };
 
     rotCanvas.addEventListener('touchend', handleTouch, { passive: false });
+
+    const placeSelectedItem = async () => {
+        if (!gameState.selectedItem) {
+            return;
+        }
+
+        const playerX = gameState.player.x;
+        const playerY = gameState.player.y;
+        const targetX = playerX;
+        const targetY = playerY;
+
+        let [targetTile, updatedGameState] = await getTile(gameState, targetX, targetY, storage);
+        gameState = updatedGameState;
+
+        if (targetTile && TILES[targetTile.type].isWalkable) {
+            const newInventory = { ...gameState.inventory };
+            newInventory[gameState.selectedItem]--;
+
+            const newTile = { type: gameState.selectedItem };
+
+            if (newInventory[gameState.selectedItem] <= 0) {
+                delete newInventory[gameState.selectedItem];
+                gameState = { ...gameState, selectedItem: null };
+            }
+
+            const chunkX = Math.floor(targetX / CHUNK_WIDTH);
+            const localX = (targetX % CHUNK_WIDTH + CHUNK_WIDTH) % CHUNK_WIDTH;
+            const localY = (targetY % CHUNK_HEIGHT + CHUNK_HEIGHT) % CHUNK_HEIGHT;
+
+            await storage.saveTile(chunkX, localX, localY, newTile);
+            await storage.saveInventory(playerName, newInventory);
+
+            gameState = { ...gameState, inventory: newInventory };
+
+            drawGame(gameState, display, storage);
+        }
+    };
+
+    const selectItem = (tileType) => {
+        gameState = { ...gameState, selectedItem: tileType };
+        drawGame(gameState, display, storage);
+    };
 
 }
 

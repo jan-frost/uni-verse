@@ -7,6 +7,7 @@ import { CHUNK_WIDTH, CHUNK_HEIGHT } from './config.js';
  * @property {number} seed - The world generation seed.
  * @property {string} playerName - The player's name.
  * @property {object} inventory - The player's inventory.
+ * @property {string | null} selectedItem - The tile type of the selected item.
  * @property {{x: number, y: number}} player - The player's world coordinates.
  * @property {{x: number, y: number}} currentChunk - The chunk coordinates the player is currently in.
  * @property {Map<string, Object>} chunks - A map of loaded chunks, keyed by "chunkX,chunkY".
@@ -41,6 +42,7 @@ export function createInitialState(urlParams, playerName, inventory) {
         seed,
         playerName,
         inventory,
+        selectedItem: null,
         player: { x: initialPlayerX, y: initialPlayerY },
         currentChunk: { x: initialChunkX, y: initialChunkY },
         chunks: new Map(),
