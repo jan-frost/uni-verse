@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test('chunk memory management should work correctly on player movement', async ({ page }) => {
   await page.goto('/');
 
-  const canvas = page.locator('canvas');
+  const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
 
   // Get initial screenshot

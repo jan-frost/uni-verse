@@ -4,7 +4,7 @@ test('map should render correctly', async ({ page }) => {
   await page.goto('/');
 
   // The main canvas is replaced by the rot.js canvas, which doesn't have an id
-  const canvas = page.locator('canvas');
+  const canvas = page.locator('canvas').first();
   await expect(canvas).toBeVisible();
 
   // Check that the canvas has a size
